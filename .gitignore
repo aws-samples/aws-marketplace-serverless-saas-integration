@@ -1,0 +1,6 @@
+node_modules
+.vscode
+.aws-sam
+.DS_Store
+packaged.yaml
+deploy.sh

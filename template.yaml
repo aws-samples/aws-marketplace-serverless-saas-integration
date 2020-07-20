@@ -1,0 +1,392 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  app
+
+  Sample SAM Template for app
+
+Globals:
+  Function:
+    Timeout: 15
+  Api:
+    Cors:
+      AllowMethods: "'POST,OPTIONS'"
+      AllowHeaders: "'*'"
+      AllowOrigin: "'*'"
+      AllowCredentials: "'*'"
+
+Parameters:
+  WebsiteS3BucketName:
+    Type: String
+    Default: ""
+
+  NewSubscribersTableName:
+    Type: String
+    AllowedPattern: ".*"
+    Default: "AWSMarketplaceSubscribers"
+  
+  AWSMarketplaceMeteringRecordsTableName:
+    Type: String
+    AllowedPattern: ".*"
+    Default: "AWSMarketplaceMeteringRecords"
+
+  TypeOfSaaSListing:
+    Type: String
+    Default: contracts_with_subscription
+    AllowedValues:
+      - contracts_with_subscription
+      - contracts
+      - subscriptions
+
+  ProductCode:
+    Type: String
+    AllowedPattern: ".*"
+
+  MarketplaceTechAdminEmail:
+    Type: String
+    AllowedPattern: ".*"
+
+  EntitlementSNSTopic:
+    Type: String
+    Default: ""
+
+  SubscriptionSNSTopic:
+    Type: String
+
+  CreateRegistrationWebPage:
+    Default: true
+    Type: String
+    AllowedValues: [true, false]
+
+Conditions:
+  CreateEntitlementLogic:
+    Fn::Or:
+      - !Equals [!Ref TypeOfSaaSListing, contracts_with_subscription]
+      - !Equals [!Ref TypeOfSaaSListing, contracts]
+
+  CreateSubscriptionLogic:
+    Fn::Or:
+      - !Equals [!Ref TypeOfSaaSListing, contracts_with_subscription]
+      - !Equals [!Ref TypeOfSaaSListing, subscriptions]
+
+  CreateWeb: !Equals [!Ref CreateRegistrationWebPage, true]
+
+Resources:
+  CloudFrontOriginAccessIdentity:
+    Type: "AWS::CloudFront::CloudFrontOriginAccessIdentity"
+    Condition: CreateWeb
+    Properties:
+      CloudFrontOriginAccessIdentityConfig:
+        Comment: "Serverless website OA"
+
+  CloudfrontDistribution:
+    Type: "AWS::CloudFront::Distribution"
+    Condition: CreateWeb
+    Properties:
+      DistributionConfig:
+        Comment: "Cloudfront distribution for serverless website"
+        DefaultRootObject: "index.html"
+        Enabled: true
+        HttpVersion: http2
+        # List of origins that Cloudfront will connect to
+        Origins:
+          - Id: s3-website
+            DomainName: !GetAtt WebsiteS3Bucket.DomainName
+            S3OriginConfig:
+              # Restricting Bucket access through an origin access identity
+              OriginAccessIdentity:
+                Fn::Sub: "origin-access-identity/cloudfront/${CloudFrontOriginAccessIdentity}"
+        # To connect the CDN to the origins you need to specify behaviours
+        DefaultCacheBehavior:
+          # Compress resources automatically ( gzip )
+          Compress: true
+          AllowedMethods:
+            - HEAD
+            - DELETE
+            - POST
+            - GET
+            - OPTIONS
+            - PUT
+            - PATCH
+          ForwardedValues:
+            QueryString: false
+          LambdaFunctionAssociations:
+            - EventType: viewer-request
+              LambdaFunctionARN: !Ref LambdaEdgeRedirectPostRequests.Version
+              IncludeBody: true
+          TargetOriginId: s3-website
+          ViewerProtocolPolicy: redirect-to-https
+        Logging:
+          Bucket: !GetAtt WebsiteS3Bucket.DomainName
+          IncludeCookies: false
+          Prefix: "access-logs"
+
+  WebsiteS3Bucket:
+    Type: AWS::S3::Bucket
+    Condition: CreateWeb
+    Properties:
+      BucketName: !Ref WebsiteS3BucketName
+
+  S3BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Condition: CreateWeb
+    Properties:
+      Bucket: !Ref WebsiteS3Bucket
+      PolicyDocument:
+        # Restricting access to cloudfront only.
+        Statement:
+          - Effect: Allow
+            Action: "s3:GetObject"
+            Resource:
+              - !Sub "arn:aws:s3:::${WebsiteS3Bucket}/*"
+            Principal:
+              AWS: !Sub "arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity ${CloudFrontOriginAccessIdentity}"
+
+  LambdaEdgeRedirectPostRequests:
+    Type: AWS::Serverless::Function
+    Condition: CreateWeb
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+    Properties:
+      Runtime: nodejs12.x
+      CodeUri: src/lambda-edge/
+      Handler: edege-redirect.lambdaHandler
+      Timeout: 5
+      AutoPublishAlias: live
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Action: "sts:AssumeRole"
+            Principal:
+              Service:
+                - "lambda.amazonaws.com"
+                - "edgelambda.amazonaws.com"
+
+  AWSMarketplaceMeteringRecords:
+    Type: AWS::DynamoDB::Table
+    Condition: CreateSubscriptionLogic
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: "customerIdentifier"
+          AttributeType: "S"
+        - AttributeName: "create_timestamp"
+          AttributeType: "N"
+        - AttributeName: "metering_pending"
+          AttributeType: "S"
+
+      BillingMode: PAY_PER_REQUEST
+      KeySchema:
+        - AttributeName: "customerIdentifier"
+          KeyType: "HASH"
+        - AttributeName: "create_timestamp"
+          KeyType: "RANGE"
+      GlobalSecondaryIndexes:
+        - IndexName: PendingMeteringRecordsIndex
+          KeySchema:
+            - AttributeName: "metering_pending"
+              KeyType: "HASH"
+          Projection:
+            ProjectionType: ALL
+      TableName: !Ref AWSMarketplaceMeteringRecordsTableName
+
+  AWSMarketplaceSubscribers:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: "customerIdentifier"
+          AttributeType: "S"
+      BillingMode: PAY_PER_REQUEST
+      KeySchema:
+        - AttributeName: "customerIdentifier"
+          KeyType: "HASH"
+      TableName: !Ref NewSubscribersTableName
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+
+  RegisterNewMarketplaceCustomer:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: register-new-subscriber.registerNewSubscriber
+      Runtime: nodejs12.x
+      Environment:
+        Variables:
+          NewSubscribersTableName: !Ref NewSubscribersTableName
+          EntitlementQueueUrl: !If [CreateSubscriptionLogic, !Ref  EntitlementSQSQueue, '' ] 
+      Policies:
+        - DynamoDBWritePolicy:
+            TableName: !Ref NewSubscribersTableName
+        - Statement:
+            - Sid: AWSMarketplaceResolveCustomer
+              Effect: Allow
+              Action:
+                - aws-marketplace:ResolveCustomer
+              Resource: "*"
+        - Statement:
+          - Sid: SQSPolice
+            Effect: Allow
+            Action:
+              - sqs:SendMessage
+            Resource: !GetAtt EntitlementSQSQueue.Arn
+
+      Events:
+        RegisterCustomer:
+          Type: Api
+          Properties:
+            Path: /subscriber
+            Method: post
+
+  EntitlementSQSQueue:
+    Type: AWS::SQS::Queue
+    Condition: CreateSubscriptionLogic
+
+  EntitlementSQSHandler:
+    Type: AWS::Serverless::Function
+    Condition: CreateEntitlementLogic
+    Properties:
+      CodeUri: src
+      Handler: entitlement-sqs.handler
+      Runtime: nodejs12.x
+      Environment:
+        Variables:
+          NewSubscribersTableName: !Ref NewSubscribersTableName
+      Policies:
+        - DynamoDBWritePolicy:
+            TableName: !Ref NewSubscribersTableName
+        - SQSSendMessagePolicy:
+            QueueName: !GetAtt SQSMeteringRecrods.Arn
+        - Statement:
+            - Sid: AWSMarketplaceEntitlements
+              Effect: Allow
+              Action:
+                - aws-marketplace:GetEntitlements
+              Resource: "*"
+      Events:
+        MySQSEvent:
+          Type: SNS
+          Properties:
+            Topic: !Ref EntitlementSNSTopic
+            SqsSubscription:
+              BatchSize: 1
+              QueueArn: !GetAtt EntitlementSQSQueue.Arn
+              QueueUrl: !Ref EntitlementSQSQueue
+
+  SubscriptionSQSHandler:
+    Type: AWS::Serverless::Function
+    Condition: CreateSubscriptionLogic
+    Properties:
+      CodeUri: src
+      Handler: subscription-sqs.SQSHandler
+      Runtime: nodejs12.x
+      Environment:
+        Variables:
+          NewSubscribersTableName: !Ref NewSubscribersTableName
+          SupportSNSArn: !Ref SupportSNSTopic
+      Policies:
+        - DynamoDBWritePolicy:
+            TableName: !Ref NewSubscribersTableName
+        - Statement:
+            - Sid: SNSPublish
+              Effect: Allow
+              Action:
+                - sns:Publish
+              Resource: !Ref SupportSNSTopic
+      Events:
+        MySQSEvent:
+          Type: SNS
+          Properties:
+            Topic: !Ref SubscriptionSNSTopic
+            SqsSubscription: true
+
+  SupportSNSTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      Subscription:
+      - Endpoint: !Ref MarketplaceTechAdminEmail
+        Protocol: email
+  
+  GrantOrRevokeAccess:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src
+      Handler: grant-revoke-access-to-product.dynamodbStreamHandler
+      Runtime: nodejs12.x
+      Environment:
+        Variables:
+          SupportSNSArn: !Ref SupportSNSTopic
+      Policies: 
+        - AWSLambdaDynamoDBExecutionRole
+        - Statement:
+            - Sid: SNSPublish
+              Effect: Allow
+              Action:
+                - sns:Publish
+              Resource: !Ref SupportSNSTopic
+      Events:
+        Stream:
+          Type: DynamoDB
+          Properties:
+            Stream: !GetAtt AWSMarketplaceSubscribers.StreamArn
+            BatchSize: 1
+            StartingPosition: TRIM_HORIZON
+
+  Hourly:
+    Type: AWS::Serverless::Function
+    Condition: CreateSubscriptionLogic
+    Properties:
+      CodeUri: src
+      Handler: metering-hourly-job.job
+      Runtime: nodejs12.x
+      Environment:
+        Variables:
+          SQSMeteringRecrodsUrl: !Ref SQSMeteringRecrods
+          AWSMarketplaceMeteringRecordsTableName: !Ref AWSMarketplaceMeteringRecordsTableName
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref AWSMarketplaceMeteringRecordsTableName
+        - SQSSendMessagePolicy:
+            QueueName: !GetAtt SQSMeteringRecrods.QueueName
+      Events:
+        CWSchedule:
+          Type: Schedule
+          Properties:
+            Schedule: "rate(1 hour)"
+            Name: !Join [ "-", [MeteringSchedule,  !Ref AWS::StackName]]
+            Description: SaaS Metering
+            Enabled: TRUE
+
+  SQSMeteringRecrods:
+    Type: AWS::SQS::Queue
+    Properties:
+      ContentBasedDeduplication: true
+      FifoQueue: true
+      MessageRetentionPeriod: 3000
+    Condition: CreateSubscriptionLogic
+
+  MeteringSQSHandler:
+    Type: AWS::Serverless::Function
+    Condition: CreateSubscriptionLogic
+    Properties:
+      CodeUri: src
+      Handler: metering-sqs.handler
+      Runtime: nodejs12.x
+      Environment:
+        Variables:
+          ProductCode: !Ref ProductCode
+          AWSMarketplaceMeteringRecordsTableName: !Ref AWSMarketplaceMeteringRecordsTableName
+      Policies:
+        - DynamoDBWritePolicy:
+            TableName: !Ref AWSMarketplaceMeteringRecordsTableName
+        - Statement:
+            - Sid: AWSMarketplaceMetering
+              Effect: Allow
+              Action:
+                - aws-marketplace:BatchMeterUsage
+              Resource: "*"
+      Events:
+        MySQSEvent:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt SQSMeteringRecrods.Arn
+            BatchSize: 1

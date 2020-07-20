@@ -1,0 +1,11 @@
+{
+  "name": "aws-marketplace-saas-serverless-integration",
+  "version": "1.0.0",
+  "description": "Sample integration for SaaS products with AWS Marketplace",
+  "repository": "https://github.com/orgs/aws-samples/aws-marketplace-saas-serverless-integration",
+  "author": "Martin Gjoshevski <gjoshm@amazon.com>",
+  "license": "MIT-0",
+  "dependencies": {
+    "aws-sdk": "^2.7"
+  }
+}
