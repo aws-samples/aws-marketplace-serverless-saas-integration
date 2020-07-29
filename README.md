@@ -48,27 +48,27 @@ The handler for the marketplace/customer endpoint is defined in the `src/registe
 ### Grant access to new subscribers
 
 Once the resolveCustomer endpoint return successful response, the SaaS vendors must to provide access to the solution to the new subscriber. 
-Based on the type of listing contract or subscription we have defined different conditions in the `environment-provisioning.js` stream handler that is executed on adding new or updating existing rows.
+Based on the type of listing contract or subscription we have defined different conditions in the `grant-revoke-access-to-product.js` stream handler that is executed on adding new or updating existing rows.
 
-In our implementation the Marketplace Tech Admin (The email adress you have entered when deplyoing), will receive email when new environment needs to be provisioned or existing environment needs to be updated. AWS Marketplace strongly recommends automating the access and environment management which can be achieved by modifying the `environment-provisioning.js` function.
+In our implementation the Marketplace Tech Admin (The email address you have entered when deploying), will receive email when new environment needs to be provisioned or existing environment needs to be updated. AWS Marketplace strongly recommends automating the access and environment management which can be achieved by modifying the `grant-revoke-access-to-product.js` function.
 
 The property successfully subscribed is set when successful response is returned from the SQS entitlement handler for SaaS Contract based listings or after receiving **subscribe-success message from the Subscription SNS Topic in the case of AWS SaaS subscriptions in the `subscription-sqs-handler.js`.
 
 
-### Update entitlement levels to new subscirbers (SaaS Contracts only)
+### Update entitlement levels to new subscribers (SaaS Contracts only)
 
 Each time the entitlement is update we receive message on the SNS topic. 
-The lambda function `eintilemnet-sqs.js` on each message is calling the marketplaceEntitlementService and storing the response in the dynamoDB.
+The lambda function `entitlement-sqs.js` on each message is calling the marketplaceEntitlementService and storing the response in the dynamoDB.
 
 We are using the same DynamoDB stream to detect changes in the entailment for SaaS contracts. When the entitlement is update notification is sent to the `MarketplaceTechAdmin`.
 
 
-### Revoke access to customers with expired contracts and canceled subscriptions 
+### Revoke access to customers with expired contracts and cancelled subscriptions 
 
 The revoke access logic is implemented in a similar manner as the grant access logic. 
 
 In our implementation the `MarketplaceTechAdmin` receives email when the contract expires or the subscription is cancelled. 
-AWS Marketplace strongly recommends automating the access and environment management which can be achieved by modifying the `environment-provisioning.js` function.
+AWS Marketplace strongly recommends automating the access and environment management which can be achieved by modifying the `grant-revoke-access-to-product.js` function.
 
 ## Metering for usage
 
@@ -78,7 +78,7 @@ For SaaS subscriptions, the SaaS provider must meter for all usage, and then cus
 
 We have created MeteringSchedule CloudWatch Event rule that is **triggered every hour**. The `metering-hourly-job.js` gets triggered by this rule and it's querying all of the pending/unreported metering records from the `AWSMarketplaceMeteringRecords` table using the PendingMeteringRecordsIndex.
 All of the pending records are aggregated based on the customerIdentifier and dimension name, and sent to the SQSMetering queue.
-The records in the `AWSMarketplaceMeteringRecords` table are expected to be inserted programaticaly by your SaaS aplication. In this case you will have to give permissions to the service in charge of collecting usage data in your existing SaaS product to be able to write to `AWSMarketplaceMeteringRecords` table. 
+The records in the `AWSMarketplaceMeteringRecords` table are expected to be inserted programmatically by your SaaS application. In this case you will have to give permissions to the service in charge of collecting usage data in your existing SaaS product to be able to write to `AWSMarketplaceMeteringRecords` table. 
 
 The lambda function `metering-sqs.js` is sending all of the queued metering records to the AWS marketplace Metering API.
 After every call to the `batchMeterUsage` endpoint the rows are updated in the AWSMarketplaceMeteringRecords table, with the response returned from the Metering Service, which can be found in the `metering_response` field. If the request was unsuccessful the metering_failed value with be set to true and you will have to investigate the issue the error will be also stored in the `metering_response` field.
@@ -104,7 +104,7 @@ The new records in the AWSMarketplaceMeteringRecords table should be stored in t
 }
 ```
 
-Where the create_timestamp is the sort key and customerIdentifier is the partition key, and they are both forming the Primary key.
+Where the `create_timestamp` is the sort key and `customerIdentifier` is the partition key, and they are both forming the Primary key.
 The AWSMarketplaceMeteringRecords table
 
 After the record is submitted to AWS Marketplace API, it will be updated and I.E. will look like this:
@@ -175,9 +175,9 @@ Based on the value of the **TypeOfSaaSListing** parameter different set of resou
 
 In the case of *contracts_with_subscription* all of the resources depicted on the diagram below will be created.
 
-In the case of a *contracts*, the resources market with orange circless will not be created.
+In the case of a *contracts*, the resources market with orange circles will not be created.
 
-In the case of a *subscriptions* the resources market with purple circless will not be created.
+In the case of a *subscriptions* the resources market with purple circles will not be created.
 
 The landing page is optional. Use the CreateRegistrationWebPage parameter.
 
