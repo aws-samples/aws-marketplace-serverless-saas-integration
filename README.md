@@ -152,6 +152,8 @@ ParameterKey=EntitlementSNSTopic,ParameterValue=<MARKETPLACE_ENTITLEMENT_SNS_TOP
 ParameterKey=SubscriptionSNSTopic,ParameterValue=<MARKETPLACE_SUBSCRIPTION_SNS_TOPIC> \
 ParameterKey=MarketplaceTechAdminEmail,ParameterValue=<MARKETPLACE_SUBSCRIPTION_SNS_TOPIC> \
 
+#Replace the baseUrl in web/script.js with the API Gateway endpoint URL 
+
 aws s3 cp ./web/ s3://<WEBSITE_BUCKET_NAME>/ --recursive
 ```
 ### List of parameters
