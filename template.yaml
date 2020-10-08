@@ -359,6 +359,7 @@ Resources:
   SQSMeteringRecrods:
     Type: AWS::SQS::Queue
     Properties:
+      QueueName: !Join [ "-", [!Ref AWS::StackName, SQSMeteringRecrods.fifo]]
       ContentBasedDeduplication: true
       FifoQueue: true
       MessageRetentionPeriod: 3000
