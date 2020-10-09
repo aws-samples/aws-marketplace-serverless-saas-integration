@@ -150,7 +150,7 @@ ParameterKey=WebsiteS3BucketName,ParameterValue=<WEBSITE_BUCKET_NAME> \
 ParameterKey=ProductCode,ParameterValue=<MARKETPLACE_PRODUCT_CODE> \
 ParameterKey=EntitlementSNSTopic,ParameterValue=<MARKETPLACE_ENTITLEMENT_SNS_TOPIC> \
 ParameterKey=SubscriptionSNSTopic,ParameterValue=<MARKETPLACE_SUBSCRIPTION_SNS_TOPIC> \
-ParameterKey=MarketplaceTechAdminEmail,ParameterValue=<MARKETPLACE_SUBSCRIPTION_SNS_TOPIC> \
+ParameterKey=MarketplaceTechAdminEmail,ParameterValue=<MARKETPLACE_TECH_ADMIN_EMAIL> \
 
 #Replace the baseUrl in web/script.js with the API Gateway endpoint URL 
 
