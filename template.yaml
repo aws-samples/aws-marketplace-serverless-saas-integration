@@ -213,7 +213,7 @@ Resources:
       Environment:
         Variables:
           NewSubscribersTableName: !Ref NewSubscribersTableName
-          EntitlementQueueUrl: !If [CreateSubscriptionLogic, !Ref  EntitlementSQSQueue, '' ] 
+          EntitlementQueueUrl: !If [CreateEntitlementLogic, !Ref  EntitlementSQSQueue, '' ] 
       Policies:
         - DynamoDBWritePolicy:
             TableName: !Ref NewSubscribersTableName
@@ -239,7 +239,7 @@ Resources:
 
   EntitlementSQSQueue:
     Type: AWS::SQS::Queue
-    Condition: CreateSubscriptionLogic
+    Condition: CreateEntitlementLogic
 
   EntitlementSQSHandler:
     Type: AWS::Serverless::Function
