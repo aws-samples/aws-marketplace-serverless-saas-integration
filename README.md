@@ -36,7 +36,7 @@ You can choose to use your existing SaaS registration page, after collecting the
 
 ### Implementation
 
-In this sample we created CloudFront Distribution, which can be configured to use domain/CNAME by your choice. The POST request coming from AWS Marketplace is intercepted by the Edge `src/lambda-edge/edege-redirect.js`, which transforms the POST request to GET request, and passes the x-amzn-marketplace-token in the query string. 
+In this sample we created CloudFront Distribution, which can be configured to use domain/CNAME by your choice. The POST request coming from AWS Marketplace is intercepted by the Edge `src/lambda-edge/edge-redirect.js`, which transforms the POST request to GET request, and passes the x-amzn-marketplace-token in the query string. 
 We have created static HTML page hosted on S3 which takes the users inputs defined in the html form and submits them to marketplace/customer endpoint.
 
 The handler for the marketplace/customer endpoint is defined in the `src/register-new-subscriber.js` file, where we call the `resolveCustomer` and validate the token. If the token is valid the customer record is created in the `AWSMarketplaceSubscribers` DynamoDB table and the new customer data are stored.

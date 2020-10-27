@@ -150,7 +150,7 @@ Resources:
     Properties:
       Runtime: nodejs12.x
       CodeUri: src/lambda-edge/
-      Handler: edege-redirect.lambdaHandler
+      Handler: edge-redirect.lambdaHandler
       Timeout: 5
       AutoPublishAlias: live
       AssumeRolePolicyDocument:
