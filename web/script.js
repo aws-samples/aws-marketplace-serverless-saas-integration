@@ -33,7 +33,7 @@ const handleFormSubmit = (event) => {
 
   if (!regToken) {
     showAlert('danger',
-      'Registration Token Missing. Please go to AWS Marketplace and folow the instructions to set up your account!');
+      'Registration Token Missing. Please go to AWS Marketplace and follow the instructions to set up your account!');
   } else {
     const data = formToJSON(form.elements);
     data.regToken = regToken;
@@ -59,7 +59,7 @@ form.addEventListener('submit', handleFormSubmit);
 
 const regToken = getUrlParameter('x-amzn-marketplace-token');
 if (!regToken) {
-  showAlert('danger', 'Registration Token Missing. Please go to AWS Marketplace and folow the instructions to set up your account!');
+  showAlert('danger', 'Registration Token Missing. Please go to AWS Marketplace and follow the instructions to set up your account!');
 }
 
 if (!baseUrl) {
