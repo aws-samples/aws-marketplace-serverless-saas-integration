@@ -195,6 +195,9 @@ To delete the sample application that you created, use the AWS CLI. Assuming you
 aws cloudformation delete-stack --stack-name app
 ```
 
+## Note 
+- Replace the baseUrl in web/script.js with the API Gateway endpoint URL
+- Use the CloudFront CNAME as the SaaS Fulfilment URL
 
 ## Security
 
