@@ -52,6 +52,7 @@ Parameters:
 
   SubscriptionSNSTopic:
     Type: String
+    Default: ""
 
   CreateRegistrationWebPage:
     Default: true
@@ -223,12 +224,15 @@ Resources:
               Action:
                 - aws-marketplace:ResolveCustomer
               Resource: "*"
-        - Statement:
-          - Sid: SQSPolice
-            Effect: Allow
-            Action:
-              - sqs:SendMessage
-            Resource: !GetAtt EntitlementSQSQueue.Arn
+        - !If
+          - CreateEntitlementLogic
+          - Statement:
+            - Sid: SQSPolice
+              Effect: Allow
+              Action:
+                - sqs:SendMessage
+              Resource: !GetAtt EntitlementSQSQueue.Arn
+          - !Ref "AWS::NoValue"
 
       Events:
         RegisterCustomer:
