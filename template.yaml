@@ -45,6 +45,10 @@ Parameters:
   MarketplaceTechAdminEmail:
     Type: String
     AllowedPattern: ".*"
+  
+  MarketplaceSellerEmail:
+    Type: String
+    AllowedPattern: ".*"
 
   EntitlementSNSTopic:
     Type: String
@@ -52,7 +56,6 @@ Parameters:
 
   SubscriptionSNSTopic:
     Type: String
-    Default: ""
 
   CreateRegistrationWebPage:
     Default: true
@@ -215,6 +218,7 @@ Resources:
         Variables:
           NewSubscribersTableName: !Ref NewSubscribersTableName
           EntitlementQueueUrl: !If [CreateEntitlementLogic, !Ref  EntitlementSQSQueue, '' ] 
+          MarketplaceSellerEmail: !Ref MarketplaceSellerEmail
       Policies:
         - DynamoDBWritePolicy:
             TableName: !Ref NewSubscribersTableName
@@ -224,16 +228,20 @@ Resources:
               Action:
                 - aws-marketplace:ResolveCustomer
               Resource: "*"
-        - !If
-          - CreateEntitlementLogic
-          - Statement:
-            - Sid: SQSPolice
-              Effect: Allow
-              Action:
-                - sqs:SendMessage
-              Resource: !GetAtt EntitlementSQSQueue.Arn
-          - !Ref "AWS::NoValue"
+        - Statement:
+          - Sid: SQSPolice
+            Effect: Allow
+            Action:
+              - sqs:SendMessage
+            Resource: !GetAtt EntitlementSQSQueue.Arn
 
+    
+        - Statement:
+          - Sid: Sendemail
+            Effect: Allow
+            Action:
+              - ses:SendEmail
+            Resource: "*" 
       Events:
         RegisterCustomer:
           Type: Api
@@ -258,6 +266,8 @@ Resources:
       Policies:
         - DynamoDBWritePolicy:
             TableName: !Ref NewSubscribersTableName
+        - SQSSendMessagePolicy:
+            QueueName: !GetAtt SQSMeteringRecrods.Arn
         - Statement:
             - Sid: AWSMarketplaceEntitlements
               Effect: Allow
