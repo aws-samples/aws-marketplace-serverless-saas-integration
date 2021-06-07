@@ -16,7 +16,6 @@ const lambdaResponse = (statusCode, body) => ({
 });
 
 let setBuyerNotificationHandler = function (contactEmail) {
-  console.log(contactEmail);
   var params = {
     Destination: {
       ToAddresses: [contactEmail],
@@ -91,15 +90,10 @@ exports.registerNewSubscriber = async (event) => {
               }`,
           QueueUrl: entitlementQueueUrl,
         };
-        console.log("sqsstarted");
         await sqs.sendMessage(SQSParams).promise();
       }
-       console.log("sesstart");
        await setBuyerNotificationHandler(contactEmail);
-       console.log("sesdone");
-
-
-      return lambdaResponse(200, 'Thank you for registering. Please check your email for a confirmation!');
+       return lambdaResponse(200, 'Thank you for registering. Please check your email for a confirmation!');
     } catch (error) {
       console.error(error.message);
       return lambdaResponse(400, error.message);
