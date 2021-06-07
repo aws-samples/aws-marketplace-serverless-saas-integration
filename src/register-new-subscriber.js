@@ -93,10 +93,10 @@ exports.registerNewSubscriber = async (event) => {
         await sqs.sendMessage(SQSParams).promise();
       }
        await setBuyerNotificationHandler(contactEmail);
-       return lambdaResponse(200, 'Thank you for registering. Please check your email for a confirmation!');
+       return lambdaResponse(200, 'Success! Registration completed. You have purchased an enterprise product that requires some additional setup. A representative from our team will be contacting you within two business days with your account credentials. Please contact Support through our website if you have any questions.');
     } catch (error) {
-      console.error(error.message);
-      return lambdaResponse(400, error.message);
+      console.error(error);
+      return lambdaResponse(400, 'Registration data not valid. Please try again, or contact support!');
     }
   } else {
     return lambdaResponse(400, 'Request no valid');
