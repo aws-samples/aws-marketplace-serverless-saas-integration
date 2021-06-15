@@ -11,6 +11,7 @@ If you are a new seller on AWS Marketplace, we advise you to check the following
 * [SaaS Integration Video](https://www.youtube.com/watch?v=glG44f-L8us) : This video guides you through the requirements and steps needed to integrate. 
 * [SaaS Pricing Video](https://www.youtube.com/watch?v=E0uWp8nhzAk) : This video guides you through the pricing options available when choosing to list a SaaS product.
 * [AWS Marketplace - Seller Guide](https://docs.aws.amazon.com/marketplace/latest/userguide/what-is-marketplace.html) : This document covers more information about creating a SaaS product, pricing, and setting up your integration.
+* [Verify an email address](https://docs.aws.amazon.com/ses/latest/DeveloperGuide/verify-email-addresses-procedure.html): This document gives step by step instructions to verify email address that will be used as your SELLERSESVERIFIEDEMAILADDRESS address later)
 
 # Project Structure
 
@@ -150,7 +151,8 @@ ParameterKey=WebsiteS3BucketName,ParameterValue=<WEBSITE_BUCKET_NAME> \
 ParameterKey=ProductCode,ParameterValue=<MARKETPLACE_PRODUCT_CODE> \
 ParameterKey=EntitlementSNSTopic,ParameterValue=<MARKETPLACE_ENTITLEMENT_SNS_TOPIC> \
 ParameterKey=SubscriptionSNSTopic,ParameterValue=<MARKETPLACE_SUBSCRIPTION_SNS_TOPIC> \
-ParameterKey=MarketplaceTechAdminEmail,ParameterValue=<MARKETPLACE_TECH_ADMIN_EMAIL> \
+ParameterKey=MarketplaceTechAdminEmail,ParameterValue=<MARKETPLACE_TECH_ADMIN_EMAIL> 
+ParameterKey=MarketplaceSellerEmail,ParameterValue=<SELLERSESVERIFIEDEMAILADDRESS>
 
 #Check the accoutn for <MARKETPLACE_TECH_ADMIN_EMAIL> and approve the subscription to SNS
 
@@ -175,6 +177,7 @@ EntitlementSNSTopic | SNS topic ARN provided from AWS Marketplace
 SubscriptionSNSTopic | SNS topic ARN provided from AWS Marketplace
 CreateRegistrationWebPage | true or false; Default value: true
 MarketplaceTechAdminEmail | Email to be notified on changes requring action
+MarketplaceSellerEmail | Seller SES verified email address
 
 
 ### Diagram of created resources
