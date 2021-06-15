@@ -24,15 +24,15 @@ let setBuyerNotificationHandler = function (contactEmail) {
       Body: {
         Html: {
        Charset: "UTF-8",
-       Data: "<!DOCTYPE html><html><head><title>Welcome!<\/title><\/head><body><h1>Welcome!<\/h1><h2>Thanks for purchasing<\/h2><p>We\u2019re thrilled to have you on board. Our team is hard at work setting up your account, please expect to hear from a member of our customer success team soon. For reference, our records indicate you made the following purchase: User accountIf you have any questions, feel free to email our customer success team. Thanks<\/p><\/body><\/html>"
+       Data: "<!DOCTYPE html><html><head><title>Welcome!<\/title><\/head><body><h1>Welcome!<\/h1><p>Thanks for purchasing<\/p><p>We\u2019re thrilled to have you on board. Our team is hard at work setting up your account, please expect to hear from a member of our customer success team soon<\/p><\/body><\/html>"
       },
         Text: { Charset: "UTF-8",
-Data: "Welcome, Sgtest! Thanks for purchasing WUPHF.com. We’re thrilled to have you on board. Our team is hard at work setting up your account, please expect to hear from a member of our customer success team soon. For reference, our records indicate you made the following purchase: User accountIf you have any questions, feel free to email our customer success team. Thanks, The WUPHF.com Team" }
+Data: "Welcome! Thanks for purchasing. We’re thrilled to have you on board. Our team is hard at work setting up your account, please expect to hear from a member of our customer success team soon" }
       },
 
       Subject: { 
         Charset: 'UTF-8',
-        Data: "WUPHF.com" }
+        Data: "Welcome Email" }
     },
     Source: process.env.MarketplaceSellerEmail,
   };
