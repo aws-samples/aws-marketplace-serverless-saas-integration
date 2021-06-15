@@ -144,6 +144,17 @@ To build and deploy your application for the first time, run the following in yo
 sam build
 sam package --output-template-file packaged.yaml --s3-bucket <DEPLOYMENT_ARTEFACT_S3_BUCKET>
 
+
+sam deploy --template-file packaged.yaml --stack-name <STACK_NAME> --capabilities CAPABILITY_IAM \
+--region us-east-1 \
+--parameter-overrides \
+ParameterKey=WebsiteS3BucketName,ParameterValue=<WEBSITE_BUCKET_NAME> \
+ParameterKey=ProductCode,ParameterValue=<MARKETPLACE_PRODUCT_CODE> \
+ParameterKey=EntitlementSNSTopic,ParameterValue=<MARKETPLACE_ENTITLEMENT_SNS_TOPIC> \
+ParameterKey=SubscriptionSNSTopic,ParameterValue=<MARKETPLACE_SUBSCRIPTION_SNS_TOPIC> \
+ParameterKey=MarketplaceTechAdminEmail,ParameterValue=<MARKETPLACE_TECH_ADMIN_EMAIL> \
+
+#If you want to notify your buyer of successful purchase then you can use the following to deploy your application
 sam deploy --template-file packaged.yaml --stack-name <STACK_NAME> --capabilities CAPABILITY_IAM \
 --region us-east-1 \
 --parameter-overrides \
