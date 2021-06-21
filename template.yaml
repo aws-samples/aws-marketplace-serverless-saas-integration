@@ -49,6 +49,7 @@ Parameters:
   MarketplaceSellerEmail:
     Type: String
     AllowedPattern: ".*"
+    Default: ""
 
   EntitlementSNSTopic:
     Type: String
@@ -74,6 +75,8 @@ Conditions:
       - !Equals [!Ref TypeOfSaaSListing, subscriptions]
 
   CreateWeb: !Equals [!Ref CreateRegistrationWebPage, true]
+  Buyernotificationemail: !Not [!Equals [!Ref MarketplaceSellerEmail, ""]]
+    
 
 Resources:
   CloudFrontOriginAccessIdentity:
@@ -218,7 +221,12 @@ Resources:
         Variables:
           NewSubscribersTableName: !Ref NewSubscribersTableName
           EntitlementQueueUrl: !If [CreateEntitlementLogic, !Ref  EntitlementSQSQueue, '' ] 
-          MarketplaceSellerEmail: !Ref MarketplaceSellerEmail
+          MarketplaceSellerEmail:
+            Fn::If:
+            - Buyernotificationemail
+            - Ref: MarketplaceSellerEmail  
+            - Ref: AWS::NoValue 
+
       Policies:
         - DynamoDBWritePolicy:
             TableName: !Ref NewSubscribersTableName
