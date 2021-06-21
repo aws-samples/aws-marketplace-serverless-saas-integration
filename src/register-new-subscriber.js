@@ -16,7 +16,7 @@ const lambdaResponse = (statusCode, body) => ({
 });
 
 let setBuyerNotificationHandler = function (contactEmail) {
-  var params = {
+  let params = {
     Destination: {
       ToAddresses: [contactEmail],
     },
