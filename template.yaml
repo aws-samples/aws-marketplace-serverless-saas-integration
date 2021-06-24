@@ -342,13 +342,13 @@ Resources:
       Runtime: nodejs12.x
       Environment:
         Variables:
-          SQSMeteringRecrodsUrl: !Ref SQSMeteringRecrods
+          SQSMeteringRecordsUrl: !Ref SQSMeteringRecords
           AWSMarketplaceMeteringRecordsTableName: !Ref AWSMarketplaceMeteringRecordsTableName
       Policies:
         - DynamoDBReadPolicy:
             TableName: !Ref AWSMarketplaceMeteringRecordsTableName
         - SQSSendMessagePolicy:
-            QueueName: !GetAtt SQSMeteringRecrods.QueueName
+            QueueName: !GetAtt SQSMeteringRecords.QueueName
       Events:
         CWSchedule:
           Type: Schedule
@@ -358,10 +358,10 @@ Resources:
             Description: SaaS Metering
             Enabled: TRUE
 
-  SQSMeteringRecrods:
+  SQSMeteringRecords:
     Type: AWS::SQS::Queue
     Properties:
-      QueueName: !Join [ "-", [!Ref AWS::StackName, SQSMeteringRecrods.fifo]]
+      QueueName: !Join [ "-", [!Ref AWS::StackName, SQSMeteringRecords.fifo]]
       ContentBasedDeduplication: true
       FifoQueue: true
       MessageRetentionPeriod: 3000
@@ -391,5 +391,5 @@ Resources:
         MySQSEvent:
           Type: SQS
           Properties:
-            Queue: !GetAtt SQSMeteringRecrods.Arn
+            Queue: !GetAtt SQSMeteringRecords.Arn
             BatchSize: 1

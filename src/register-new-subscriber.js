@@ -23,7 +23,7 @@ exports.registerNewSubscriber = async (event) => {
   // Validate the request
   if (regToken && companyName && contactPerson && contactPhone && contactEmail) {
     try {
-      // Call resolveCustomer to validate the subscirber
+      // Call resolveCustomer to validate the subscriber
       const resolveCustomerParams = {
         RegistrationToken: regToken,
       };
@@ -32,7 +32,7 @@ exports.registerNewSubscriber = async (event) => {
         .resolveCustomer(resolveCustomerParams)
         .promise();
 
-      // Store new subscirber data in dynmoDb
+      // Store new subscriber data in dynamoDb
       const { CustomerIdentifier, ProductCode } = resolveCustomerResponse;
 
       const datetime = new Date().getTime().toString();
@@ -52,7 +52,7 @@ exports.registerNewSubscriber = async (event) => {
 
       await dynamodb.putItem(dynamoDbParams).promise();
 
-      // Only for SaaS Contracts, check entitelment
+      // Only for SaaS Contracts, check entitlement
       if (entitlementQueueUrl) {
         const SQSParams = {
           MessageBody: `{ 
