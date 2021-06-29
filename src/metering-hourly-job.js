@@ -3,7 +3,7 @@ const AWS = require('aws-sdk');
 const dynamodb = new AWS.DynamoDB({ apiVersion: '2012-08-10', region: 'us-east-1' });
 const sqs = new AWS.SQS({ apiVersion: '2012-11-05', region: 'us-east-1' });
 
-const { SQSMeteringRecrodsUrl: QueueUrl, AWSMarketplaceMeteringRecordsTableName } = process.env;
+const { SQSMeteringRecordsUrl: QueueUrl, AWSMarketplaceMeteringRecordsTableName } = process.env;
 
 
 async function asyncForEach(array, callback) {

@@ -15,26 +15,26 @@ exports.dynamodbStreamHandler = async (event) => {
 
     /*
       successfully_subscribed is set true:
-        - for SaaS Contracts: after reciving the entitelement in entitlement-sqs.js for the first time
+        - for SaaS Contracts: after reciving the entitlement in entitlement-sqs.js for the first time
         - for SaaS Subscriptions: after reciving the subscribe-success message in subscription-sqs.js
 
       subscription_expired is set to true:
-        - for SaaS Contracts: after detecting expired entitelement in entitlement-sqs.js
+        - for SaaS Contracts: after detecting expired entitlement in entitlement-sqs.js
         - for SaaS Subscriptions: after reciving the unsubscribe-success message in subscription-sqs.js
     */
     const grantAccess = newImage.successfully_subscribed === true
-                                        && oldImage.successfully_subscribed !== true;
+      && oldImage.successfully_subscribed !== true;
 
     const revokeAccess = newImage.subscription_expired === true
-                                        && !oldImage.subscription_expired;
+      && !oldImage.subscription_expired;
 
-    let entitelementUpdated = false;
+    let entitlementUpdated = false;
 
     if (newImage.entitlement && oldImage.entitlement && (newImage.entitlement !== oldImage.entitlement)) {
-      entitelementUpdated = true;
+      entitlementUpdated = true;
     }
 
-    if (grantAccess || revokeAccess || entitelementUpdated) {
+    if (grantAccess || revokeAccess || entitlementUpdated) {
       let message = '';
       let subject = '';
 
@@ -45,7 +45,7 @@ exports.dynamodbStreamHandler = async (event) => {
       } else if (revokeAccess) {
         subject = 'AWS Marketplace customer end of subscription';
         message = `Revoke access to SaaS customer: ${JSON.stringify(newImage)}`;
-      } else if (entitelementUpdated) {
+      } else if (entitlementUpdated) {
         subject = 'AWS Marketplace customer change of subscription';
         message = `New entitlement for customer: ${JSON.stringify(newImage)}`;
       }
