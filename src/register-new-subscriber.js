@@ -1,9 +1,9 @@
 const AWS = require('aws-sdk');
-var ses = new AWS.SES({ region: "us-east-1" });
+const ses = new AWS.SES({ region: "us-east-1" });
 const marketplacemetering = new AWS.MarketplaceMetering({ apiVersion: '2016-01-14', region: 'us-east-1' });
 const dynamodb = new AWS.DynamoDB({ apiVersion: '2012-08-10', region: 'us-east-1' });
 const sqs = new AWS.SQS({ apiVersion: '2012-11-05', region: 'us-east-1' });
-const { NewSubscribersTableName: newSubscribersTableName, EntitlementQueueUrl: entitlementQueueUrl, MarketplaceSellerEmail } = process.env;
+const { NewSubscribersTableName: newSubscribersTableName, EntitlementQueueUrl: entitlementQueueUrl, MarketplaceSellerEmail: marketplaceSellerEmail } = process.env;
 
 const lambdaResponse = (statusCode, body) => ({
   statusCode,
@@ -15,8 +15,8 @@ const lambdaResponse = (statusCode, body) => ({
   body: JSON.stringify(body),
 });
 
-let setBuyerNotificationHandler = function (contactEmail) {
-  if (typeof process.env.MarketplaceSellerEmail == 'undefined') {
+const setBuyerNotificationHandler = function (contactEmail) {
+  if (typeof marketplaceSellerEmail == 'undefined') {
     return;
   }
   let params = {
@@ -40,7 +40,7 @@ let setBuyerNotificationHandler = function (contactEmail) {
         Data: "Welcome Email"
       }
     },
-    Source: process.env.MarketplaceSellerEmail,
+    Source: marketplaceSellerEmail,
   };
 
   return ses.sendEmail(params).promise()
