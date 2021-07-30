@@ -12,6 +12,7 @@ If you are a new seller on AWS Marketplace, we advise you to check the following
 * [SaaS Pricing Video](https://www.youtube.com/watch?v=E0uWp8nhzAk) : This video guides you through the pricing options available when choosing to list a SaaS product.
 * [AWS Marketplace - Seller Guide](https://docs.aws.amazon.com/marketplace/latest/userguide/what-is-marketplace.html) : This document covers more information about creating a SaaS product, pricing, and setting up your integration.
 
+
 # Project Structure
 
 The sample in this repository demonstrates how to use AWS SAM (Serverless application mode) to integrate your SaaS product with AWS Marketplace and how to perform:
@@ -133,6 +134,7 @@ To use the SAM CLI, you need the following tools.
 * SAM CLI - [Install the SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html)
 * Node.js - [Install Node.js 10](https://nodejs.org/en/), including the NPM package management tool.
 * Docker - [Install Docker community edition](https://hub.docker.com/search/?type=edition&offering=community)
+* Email verification - [Verify an email address](https://docs.aws.amazon.com/ses/latest/DeveloperGuide/verify-email-addresses-procedure.html): This document gives step by step instructions to verify email address that will be used as your SELLERSESVERIFIEDEMAILADDRESS address later)
 
 To build and deploy your application for the first time, run the following in your shell:
 
@@ -143,6 +145,7 @@ To build and deploy your application for the first time, run the following in yo
 sam build
 sam package --output-template-file packaged.yaml --s3-bucket <DEPLOYMENT_ARTEFACT_S3_BUCKET>
 
+
 sam deploy --template-file packaged.yaml --stack-name <STACK_NAME> --capabilities CAPABILITY_IAM \
 --region us-east-1 \
 --parameter-overrides \
@@ -151,6 +154,17 @@ ParameterKey=ProductCode,ParameterValue=<MARKETPLACE_PRODUCT_CODE> \
 ParameterKey=EntitlementSNSTopic,ParameterValue=<MARKETPLACE_ENTITLEMENT_SNS_TOPIC> \
 ParameterKey=SubscriptionSNSTopic,ParameterValue=<MARKETPLACE_SUBSCRIPTION_SNS_TOPIC> \
 ParameterKey=MarketplaceTechAdminEmail,ParameterValue=<MARKETPLACE_TECH_ADMIN_EMAIL> \
+
+#If you want to notify your buyer of successful purchase then you can use the following to deploy your application
+sam deploy --template-file packaged.yaml --stack-name <STACK_NAME> --capabilities CAPABILITY_IAM \
+--region us-east-1 \
+--parameter-overrides \
+ParameterKey=WebsiteS3BucketName,ParameterValue=<WEBSITE_BUCKET_NAME> \
+ParameterKey=ProductCode,ParameterValue=<MARKETPLACE_PRODUCT_CODE> \
+ParameterKey=EntitlementSNSTopic,ParameterValue=<MARKETPLACE_ENTITLEMENT_SNS_TOPIC> \
+ParameterKey=SubscriptionSNSTopic,ParameterValue=<MARKETPLACE_SUBSCRIPTION_SNS_TOPIC> \
+ParameterKey=MarketplaceTechAdminEmail,ParameterValue=<MARKETPLACE_TECH_ADMIN_EMAIL> 
+ParameterKey=MarketplaceSellerEmail,ParameterValue=<SELLERSESVERIFIEDEMAILADDRESS>
 
 #Check the accoutn for <MARKETPLACE_TECH_ADMIN_EMAIL> and approve the subscription to SNS
 
@@ -175,6 +189,7 @@ EntitlementSNSTopic | SNS topic ARN provided from AWS Marketplace
 SubscriptionSNSTopic | SNS topic ARN provided from AWS Marketplace
 CreateRegistrationWebPage | true or false; Default value: true
 MarketplaceTechAdminEmail | Email to be notified on changes requring action
+MarketplaceSellerEmail | Seller SES verified email address
 
 
 ### Diagram of created resources
