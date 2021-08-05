@@ -277,7 +277,7 @@ Resources:
         - DynamoDBWritePolicy:
             TableName: !Ref NewSubscribersTableName
         - SQSSendMessagePolicy:
-            QueueName: !GetAtt SQSMeteringRecrods.Arn
+            QueueName: !GetAtt SQSMeteringRecords.Arn
         - Statement:
             - Sid: AWSMarketplaceEntitlements
               Effect: Allow
