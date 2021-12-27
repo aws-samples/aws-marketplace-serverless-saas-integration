@@ -238,7 +238,7 @@ Resources:
         - !If
           - CreateEntitlementLogic
           - Statement:
-            - Sid: SQSPolice
+            - Sid: SQSPolicy
               Effect: Allow
               Action:
                 - sqs:SendMessage
