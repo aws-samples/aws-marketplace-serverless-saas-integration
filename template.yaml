@@ -132,6 +132,10 @@ Resources:
     Condition: CreateWeb
     Properties:
       BucketName: !Ref WebsiteS3BucketName
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
 
   S3BucketPolicy:
     Type: AWS::S3::BucketPolicy
@@ -182,6 +186,8 @@ Resources:
           AttributeType: "S"
 
       BillingMode: PAY_PER_REQUEST
+      SSESpecification:
+        SSEEnabled: true
       KeySchema:
         - AttributeName: "customerIdentifier"
           KeyType: "HASH"
@@ -203,6 +209,8 @@ Resources:
         - AttributeName: "customerIdentifier"
           AttributeType: "S"
       BillingMode: PAY_PER_REQUEST
+      SSESpecification:
+        SSEEnabled: true
       KeySchema:
         - AttributeName: "customerIdentifier"
           KeyType: "HASH"
@@ -262,6 +270,8 @@ Resources:
   EntitlementSQSQueue:
     Type: AWS::SQS::Queue
     Condition: CreateEntitlementLogic
+    Properties:
+      KmsMasterKeyId: alias/aws/sqs
 
   EntitlementSQSHandler:
     Type: AWS::Serverless::Function
@@ -324,6 +334,7 @@ Resources:
   SupportSNSTopic:
     Type: AWS::SNS::Topic
     Properties:
+      KmsMasterKeyId: alias/aws/sns
       Subscription:
       - Endpoint: !Ref MarketplaceTechAdminEmail
         Protocol: email
@@ -383,6 +394,7 @@ Resources:
     Properties:
       QueueName: !Join [ "-", [!Ref AWS::StackName, SQSMeteringRecords.fifo]]
       ContentBasedDeduplication: true
+      KmsMasterKeyId: alias/aws/sqs
       FifoQueue: true
       MessageRetentionPeriod: 3000
     Condition: CreateSubscriptionLogic
