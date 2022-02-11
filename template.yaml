@@ -423,7 +423,6 @@ Outputs:
           Ref: AWS::Region
         ServerlessRestApi:
           Ref: ServerlessRestApi
-
   LandingPageUrl:
     Description: URL to access your landing page
     Value:
