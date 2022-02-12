@@ -416,17 +416,8 @@ Resources:
 Outputs:
   APIUrl:
     Description: API gateway URL to replace baseUrl value in web/script.js
-    Value:
-      Fn::Sub:
-      - https://${ServerlessRestApi}.execute-api.${Region}.amazonaws.com/Prod/
-      - Region:
-          Ref: AWS::Region
-        ServerlessRestApi:
-          Ref: ServerlessRestApi
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
+
   LandingPageUrl:
     Description: URL to access your landing page
-    Value:
-      Fn::Sub:
-      - https://${Landing_Page}/index.html
-      - Landing_Page:
-          !GetAtt 'CloudfrontDistribution.DomainName'
+    Value: !Sub "https://${CloudfrontDistribution.DomainName}/index.html"
