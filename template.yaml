@@ -419,5 +419,5 @@ Outputs:
     Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
 
   LandingPageUrl:
-    Description: URL to access your landing page
+    Description: URL to access your landing page and update SaaS URL field in your listing.
     Value: !Sub "https://${CloudfrontDistribution.DomainName}/index.html"
