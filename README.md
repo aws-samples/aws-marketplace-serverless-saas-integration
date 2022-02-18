@@ -81,7 +81,7 @@ We have created MeteringSchedule CloudWatch Event rule that is **triggered every
 All of the pending records are aggregated based on the customerIdentifier and dimension name, and sent to the SQSMetering queue.
 The records in the `AWSMarketplaceMeteringRecords` table are expected to be inserted programmatically by your SaaS application. In this case you will have to give permissions to the service in charge of collecting usage data in your existing SaaS product to be able to write to `AWSMarketplaceMeteringRecords` table. 
 
-The lambda function `metering-sqs.js` is sending all of the queued metering records to the AWS marketplace Metering API.
+The lambda function `metering-sqs.js` is sending all of the queued metering records to the AWS Marketplace Metering service.
 After every call to the `batchMeterUsage` endpoint the rows are updated in the AWSMarketplaceMeteringRecords table, with the response returned from the Metering Service, which can be found in the `metering_response` field. If the request was unsuccessful the metering_failed value with be set to true and you will have to investigate the issue the error will be also stored in the `metering_response` field.
 
 The new records in the AWSMarketplaceMeteringRecords table should be stored in the following format:
@@ -89,26 +89,46 @@ The new records in the AWSMarketplaceMeteringRecords table should be stored in t
 
 ```javascript
 {
-  "create_timestamp": 113123,
-  "customerIdentifier": "ifAPi5AcF3",
-  "dimension_usage": [
-    {
-      "dimension": "users",
-      "value": 3
-    },
-     {
-      "dimension": "admin_users",
-      "value": 1
-    }
-  ],
-  "metering_pending": "true"
+  "create_timestamp": {
+    "N": "113123"
+  },
+  "customerIdentifier": {
+    "S": "ifAPi5AcF3"
+  },
+  "dimension_usage": {
+    "L": [
+      {
+        "M": {
+          "dimension": {
+            "S": "users"
+          },
+          "value": {
+            "N": "3"
+          }
+        }
+      },
+      {
+        "M": {
+          "dimension": {
+            "S": "admin_users"
+          },
+          "value": {
+            "N": "1"
+          }
+        }
+      }
+    ]
+  },
+  "metering_pending": {
+    "S": "true"
+  }
 }
 ```
 
-Where the `create_timestamp` is the sort key and `customerIdentifier` is the partition key, and they are both forming the Primary key.
-The AWSMarketplaceMeteringRecords table
+Where the `create_timestamp` is the sort key and `customerIdentifier` is the partition key, and they are both forming the Primary key. 
+Note:The new records format is in DynamoDB JSON format. It is different than JSON. The accepted time stamp is UNIX timestamp in UTC time. 
 
-After the record is submitted to AWS Marketplace API, it will be updated and I.E. will look like this:
+After the record is submitted to AWS Marketplace BatchMeterUsage API, it will be updated and it will look like this:
 
 ```javascript
 {
