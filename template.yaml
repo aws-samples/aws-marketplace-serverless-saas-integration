@@ -413,3 +413,11 @@ Resources:
           Properties:
             Queue: !GetAtt SQSMeteringRecords.Arn
             BatchSize: 1
+Outputs:
+  APIUrl:
+    Description: API gateway URL to replace baseUrl value in web/script.js
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
+
+  LandingPageUrl:
+    Description: URL to access your landing page and update SaaS URL field in your listing.
+    Value: !Sub "https://${CloudfrontDistribution.DomainName}/index.html"
