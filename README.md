@@ -156,6 +156,19 @@ To use the SAM CLI, you need the following tools.
 * Docker - [Install Docker community edition](https://hub.docker.com/search/?type=edition&offering=community)
 * Email verification - [Verify an email address](https://docs.aws.amazon.com/ses/latest/DeveloperGuide/verify-email-addresses-procedure.html): This document gives step by step instructions to verify email address that will be used as your SELLERSESVERIFIEDEMAILADDRESS address later)
 
+To build and deploy your application, you need permission to create these resources:
+* AWS IAM role
+* Amazon CloudWatch Logs
+* Amazon CloudFront
+* Amazon S3 bucket
+* AWS CloudFormation stack
+* AWS Lambda function
+* Amazon API Gateway
+* Amazon DynamoDB database
+* Amazon SQS queue
+* Amazon SNS topic
+* Amazon EventBridge
+
 To build and deploy your application for the first time, run the following in your shell:
 
 ```bash
