@@ -66,7 +66,7 @@ exports.registerNewSubscriber = async (event) => {
         .promise();
 
       // Store new subscriber data in dynamoDb
-      const { CustomerIdentifier, ProductCode } = resolveCustomerResponse;
+      const { CustomerIdentifier, ProductCode, CustomerAWSAccountId } = resolveCustomerResponse;
 
       const datetime = new Date().getTime().toString();
 
@@ -79,6 +79,7 @@ exports.registerNewSubscriber = async (event) => {
           contactEmail: { S: contactEmail },
           customerIdentifier: { S: CustomerIdentifier },
           productCode: { S: ProductCode },
+          customerAWSAccountID: { S: CustomerAWSAccountId },          
           created: { S: datetime },
         },
       };
