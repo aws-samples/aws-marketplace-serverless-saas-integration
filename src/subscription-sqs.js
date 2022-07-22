@@ -41,15 +41,21 @@ exports.SQSHandler = async (event) => {
       throw new Error(`Unhandled action - msg: ${JSON.stringify(record)}`);
     }
 
+    let isFreeTrialTermPresent = false;
+    if (typeof message.isFreeTrialTermPresent === "string")  {
+     isFreeTrialTermPresent = message.isFreeTrialTermPresent.toLowerCase() === "true";
+    }
+
     const dynamoDbParams = {
       TableName: newSubscribersTableName,
       Key: {
         customerIdentifier: { S: message['customer-identifier'] },
       },
-      UpdateExpression: 'set successfully_subscribed = :ss, subscription_expired = :se',
+      UpdateExpression: 'set successfully_subscribed = :ss, subscription_expired = :se, is_free_trial_term_present = :ft',
       ExpressionAttributeValues: {
         ':ss': { BOOL: successfullySubscribed },
         ':se': { BOOL: subscriptionExpired },
+        ':ft': { BOOL: isFreeTrialTermPresent}
       },
       ReturnValues: 'UPDATED_NEW',
     };

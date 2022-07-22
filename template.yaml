@@ -296,7 +296,6 @@ Resources:
 
   SubscriptionSQSHandler:
     Type: AWS::Serverless::Function
-    Condition: CreateSubscriptionLogic
     Properties:
       CodeUri: src
       Handler: subscription-sqs.SQSHandler
