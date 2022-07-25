@@ -12,18 +12,19 @@ exports.dynamodbStreamHandler = async (event) => {
     // eslint-disable-next-line no-console
     console.log(`DynamoDb record updated! OldImage: ${JSON.stringify(oldImage)} | NewImage: ${JSON.stringify(newImage)}`);
 
-
     /*
       successfully_subscribed is set true:
-        - for SaaS Contracts: after reciving the entitlement in entitlement-sqs.js for the first time
+        - for SaaS Contracts: no email is sent but after receiving the message in the subscription topic
         - for SaaS Subscriptions: after reciving the subscribe-success message in subscription-sqs.js
 
       subscription_expired is set to true:
         - for SaaS Contracts: after detecting expired entitlement in entitlement-sqs.js
         - for SaaS Subscriptions: after reciving the unsubscribe-success message in subscription-sqs.js
     */
-    const grantAccess = newImage.successfully_subscribed === true
-      && oldImage.successfully_subscribed !== true;
+    const grantAccess = newImage.successfully_subscribed === true && 
+      typeof newImage.is_free_trial_term_present !== "undefined" && 
+      ( oldImage.successfully_subscribed !== true || typeof oldImage.is_free_trial_term_present === "undefined" )
+      
 
     const revokeAccess = newImage.subscription_expired === true
       && !oldImage.subscription_expired;
