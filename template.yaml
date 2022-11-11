@@ -123,7 +123,7 @@ Resources:
           TargetOriginId: s3-website
           ViewerProtocolPolicy: redirect-to-https
         Logging:
-          Bucket: !GetAtt WebsiteS3Bucket.DomainName
+          Bucket: !GetAtt WebsiteS3BucketLog.DomainName
           IncludeCookies: false
           Prefix: "access-logs"
 
@@ -132,7 +132,19 @@ Resources:
     Condition: CreateWeb
     Properties:
       BucketName: !Ref WebsiteS3BucketName
-
+  
+  WebsiteS3BucketLog:
+    Type: AWS::S3::Bucket
+    Condition: CreateWeb
+    Properties:
+      BucketName: !Join [ "-", [!Ref WebsiteS3BucketName, "log"]]
+      IntelligentTieringConfigurations:
+        - Id: !Join [ "-", [!Ref WebsiteS3BucketName, "log"]]
+          Status: Enabled
+          Tierings: 
+            - AccessTier: ARCHIVE_ACCESS
+              Days : 90
+      
   S3BucketPolicy:
     Type: AWS::S3::BucketPolicy
     Condition: CreateWeb
