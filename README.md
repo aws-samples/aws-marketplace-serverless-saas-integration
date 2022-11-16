@@ -175,6 +175,7 @@ To build and deploy your application for the first time, run the following in yo
 ```bash
 
 #Replace all `<PLACEHOLDER_VALUES>` with their `actual values` (e.g. `<PROJECT_NAME>` with `My Cool Project`).
+#Create non-public bucket for <DEPLOYMENT_ARTEFACT_S3_BUCKET> before running this script
 
 sam build
 sam package --output-template-file packaged.yaml --s3-bucket <DEPLOYMENT_ARTEFACT_S3_BUCKET>
@@ -207,21 +208,21 @@ aws s3 cp ./web/ s3://<WEBSITE_BUCKET_NAME>/ --recursive
 
 #add a CNAME record to your DNS to route the url you put on your offering to the cloudformation endpoint
 
-#add the domain used for your maretplace URL to the CNAME on the cloudformation config
+#add the domain used for your marketplace URL to the CNAME on the cloudformation config
 ```
 ### List of parameters
 
 Parameter name | Description
 ------------ | -------------
-WebsiteS3BucketName | S3 bucket to store the HTML files; Mandatory if CreateRegistrationWebPage is set to true;
-NewSubscribersTableName | Use custome name for the New Subscribers Table; Default value: AWSMarketplaceSubscribers
-AWSMarketplaceMeteringRecordsTableName | Use custome name for the Metering Records Table; Default value: AWSMarketplaceMeteringRecords
+WebsiteS3BucketName | S3 bucket to store the HTML files; Mandatory if CreateRegistrationWebPage is set to true; will be created
+NewSubscribersTableName | Use customer name for the New Subscribers Table; Default value: AWSMarketplaceSubscribers
+AWSMarketplaceMeteringRecordsTableName | Use customer name for the Metering Records Table; Default value: AWSMarketplaceMeteringRecords
 TypeOfSaaSListing | allowed values: contracts_with_subscription, contracts, subscriptions; Default value: contracts_with_subscription
 ProductCode | Product code provided from AWS Marketplace
-EntitlementSNSTopic | SNS topic ARN provided from AWS Marketplace
-SubscriptionSNSTopic | SNS topic ARN provided from AWS Marketplace
+EntitlementSNSTopic | SNS topic ARN provided from AWS Marketplace. Must exist.
+SubscriptionSNSTopic | SNS topic ARN provided from AWS Marketplace. Must exist.
 CreateRegistrationWebPage | true or false; Default value: true
-MarketplaceTechAdminEmail | Email to be notified on changes requring action
+MarketplaceTechAdminEmail | Email to be notified on changes requiring action
 MarketplaceSellerEmail | Seller SES verified email address
 
 
