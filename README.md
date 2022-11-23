@@ -223,7 +223,7 @@ EntitlementSNSTopic | SNS topic ARN provided from AWS Marketplace. Must exist.
 SubscriptionSNSTopic | SNS topic ARN provided from AWS Marketplace. Must exist.
 CreateRegistrationWebPage | true or false; Default value: true
 MarketplaceTechAdminEmail | Email to be notified on changes requiring action
-MarketplaceSellerEmail | Seller SES verified email address
+MarketplaceSellerEmail | Seller email address, verified in SES and in 'Production' mode
 
 
 ### Diagram of created resources
