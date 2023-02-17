@@ -22,7 +22,7 @@ Parameters:
     Type: String
     AllowedPattern: ".*"
     Default: "AWSMarketplaceSubscribers"
-  
+
   AWSMarketplaceMeteringRecordsTableName:
     Type: String
     AllowedPattern: ".*"
@@ -43,7 +43,7 @@ Parameters:
   MarketplaceTechAdminEmail:
     Type: String
     AllowedPattern: ".*"
-  
+
   MarketplaceSellerEmail:
     Type: String
     AllowedPattern: ".*"
@@ -75,7 +75,6 @@ Conditions:
 
   CreateWeb: !Equals [!Ref CreateRegistrationWebPage, true]
   Buyernotificationemail: !Not [!Equals [!Ref MarketplaceSellerEmail, ""]]
-    
 
 Resources:
   CloudFrontOriginAccessIdentity:
@@ -132,19 +131,19 @@ Resources:
     Condition: CreateWeb
     Properties:
       BucketName: !Ref WebsiteS3BucketName
-  
+
   WebsiteS3BucketLog:
     Type: AWS::S3::Bucket
     Condition: CreateWeb
     Properties:
-      BucketName: !Join [ "-", [!Ref WebsiteS3BucketName, "log"]]
+      BucketName: !Join ["-", [!Ref WebsiteS3BucketName, "log"]]
       IntelligentTieringConfigurations:
-        - Id: !Join [ "-", [!Ref WebsiteS3BucketName, "log"]]
+        - Id: !Join ["-", [!Ref WebsiteS3BucketName, "log"]]
           Status: Enabled
-          Tierings: 
+          Tierings:
             - AccessTier: ARCHIVE_ACCESS
-              Days : 90
-      
+              Days: 90
+
   S3BucketPolicy:
     Type: AWS::S3::BucketPolicy
     Condition: CreateWeb
@@ -166,7 +165,7 @@ Resources:
     UpdateReplacePolicy: Delete
     DeletionPolicy: Delete
     Properties:
-      Runtime: nodejs12.x
+      Runtime: nodejs18.x
       CodeUri: src/lambda-edge/
       Handler: edge-redirect.lambdaHandler
       Timeout: 5
@@ -227,16 +226,17 @@ Resources:
     Properties:
       CodeUri: src/
       Handler: register-new-subscriber.registerNewSubscriber
-      Runtime: nodejs12.x
+      Runtime: nodejs18.x
       Environment:
         Variables:
           NewSubscribersTableName: !Ref NewSubscribersTableName
-          EntitlementQueueUrl: !If [CreateEntitlementLogic, !Ref  EntitlementSQSQueue, '' ] 
+          EntitlementQueueUrl:
+            !If [CreateEntitlementLogic, !Ref EntitlementSQSQueue, ""]
           MarketplaceSellerEmail:
             Fn::If:
-            - Buyernotificationemail
-            - Ref: MarketplaceSellerEmail  
-            - Ref: AWS::NoValue 
+              - Buyernotificationemail
+              - Ref: MarketplaceSellerEmail
+              - Ref: AWS::NoValue
 
       Policies:
         - DynamoDBWritePolicy:
@@ -250,20 +250,19 @@ Resources:
         - !If
           - CreateEntitlementLogic
           - Statement:
-            - Sid: SQSPolicy
-              Effect: Allow
-              Action:
-                - sqs:SendMessage
-              Resource: !GetAtt EntitlementSQSQueue.Arn
+              - Sid: SQSPolicy
+                Effect: Allow
+                Action:
+                  - sqs:SendMessage
+                Resource: !GetAtt EntitlementSQSQueue.Arn
           - !Ref "AWS::NoValue"
 
-    
         - Statement:
-          - Sid: Sendemail
-            Effect: Allow
-            Action:
-              - ses:SendEmail
-            Resource: "*" 
+            - Sid: Sendemail
+              Effect: Allow
+              Action:
+                - ses:SendEmail
+              Resource: "*"
       Events:
         RegisterCustomer:
           Type: Api
@@ -281,7 +280,7 @@ Resources:
     Properties:
       CodeUri: src
       Handler: entitlement-sqs.handler
-      Runtime: nodejs12.x
+      Runtime: nodejs18.x
       Environment:
         Variables:
           NewSubscribersTableName: !Ref NewSubscribersTableName
@@ -311,7 +310,7 @@ Resources:
     Properties:
       CodeUri: src
       Handler: subscription-sqs.SQSHandler
-      Runtime: nodejs12.x
+      Runtime: nodejs18.x
       Environment:
         Variables:
           NewSubscribersTableName: !Ref NewSubscribersTableName
@@ -336,19 +335,20 @@ Resources:
     Type: AWS::SNS::Topic
     Properties:
       Subscription:
-      - Endpoint: !Ref MarketplaceTechAdminEmail
-        Protocol: email
-  
+        - Endpoint: !Ref MarketplaceTechAdminEmail
+          Protocol: email
+
   GrantOrRevokeAccess:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: src
       Handler: grant-revoke-access-to-product.dynamodbStreamHandler
-      Runtime: nodejs12.x
+      Runtime: nodejs18.x
       Environment:
         Variables:
           SupportSNSArn: !Ref SupportSNSTopic
-      Policies: 
+          LOG_LEVEL: "info"
+      Policies:
         - AWSLambdaDynamoDBExecutionRole
         - Statement:
             - Sid: SNSPublish
@@ -370,7 +370,7 @@ Resources:
     Properties:
       CodeUri: src
       Handler: metering-hourly-job.job
-      Runtime: nodejs12.x
+      Runtime: nodejs18.x
       Environment:
         Variables:
           SQSMeteringRecordsUrl: !Ref SQSMeteringRecords
@@ -385,14 +385,14 @@ Resources:
           Type: Schedule
           Properties:
             Schedule: "rate(1 hour)"
-            Name: !Join [ "-", [MeteringSchedule,  !Ref AWS::StackName]]
+            Name: !Join ["-", [MeteringSchedule, !Ref AWS::StackName]]
             Description: SaaS Metering
             Enabled: TRUE
 
   SQSMeteringRecords:
     Type: AWS::SQS::Queue
     Properties:
-      QueueName: !Join [ "-", [!Ref AWS::StackName, SQSMeteringRecords.fifo]]
+      QueueName: !Join ["-", [!Ref AWS::StackName, SQSMeteringRecords.fifo]]
       ContentBasedDeduplication: true
       FifoQueue: true
       MessageRetentionPeriod: 3000
@@ -404,7 +404,7 @@ Resources:
     Properties:
       CodeUri: src
       Handler: metering-sqs.handler
-      Runtime: nodejs12.x
+      Runtime: nodejs18.x
       Environment:
         Variables:
           ProductCode: !Ref ProductCode
@@ -431,4 +431,9 @@ Outputs:
 
   LandingPageUrl:
     Description: URL to access your landing page and update SaaS URL field in your listing.
-    Value: !If [ CreateWeb,  !Sub "https://${CloudfrontDistribution.DomainName}/index.html", "N/A" ]
+    Value:
+      !If [
+        CreateWeb,
+        !Sub "https://${CloudfrontDistribution.DomainName}/index.html",
+        "N/A",
+      ]
