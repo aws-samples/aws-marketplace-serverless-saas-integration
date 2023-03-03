@@ -51,8 +51,9 @@ exports.SQSHandler = async (event) => {
       Key: {
         customerIdentifier: { S: message['customer-identifier'] },
       },
-      UpdateExpression: 'set successfully_subscribed = :ss, subscription_expired = :se, is_free_trial_term_present = :ft',
+      UpdateExpression: 'set subscription_action = :ac, successfully_subscribed = :ss, subscription_expired = :se, is_free_trial_term_present = :ft',
       ExpressionAttributeValues: {
+        ':ac': { S: message['action'] },
         ':ss': { BOOL: successfullySubscribed },
         ':se': { BOOL: subscriptionExpired },
         ':ft': { BOOL: isFreeTrialTermPresent}
