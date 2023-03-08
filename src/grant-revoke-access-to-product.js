@@ -57,13 +57,13 @@ exports.dynamodbStreamHandler = async (event, context) => {
 
       if (grantAccess) {
         subject = 'New AWS Marketplace Subscriber';
-        message = `Grant access to new SaaS customer: ${JSON.stringify(newImage)}`;
+        message = `subscribe-success: ${JSON.stringify(newImage)}`;
       } else if (revokeAccess) {
         subject = 'AWS Marketplace customer end of subscription';
-        message = `Revoke access to SaaS customer: ${JSON.stringify(newImage)}`;
+        message = `unsubscribe-success: ${JSON.stringify(newImage)}`;
       } else if (entitlementUpdated) {
         subject = 'AWS Marketplace customer change of subscription';
-        message = `New entitlement for customer: ${JSON.stringify(newImage)}`;
+        message = `entitlement-updated: ${JSON.stringify(newImage)}`;
       }
 
       const SNSparams = {
