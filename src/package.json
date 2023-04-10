@@ -6,7 +6,7 @@
   "author": "Martin Gjoshevski <gjoshm@amazon.com>",
   "license": "MIT-0",
   "dependencies": {
-    "aws-sdk": "^2.1083.0",
+    "aws-sdk": "^2.1354.0",
     "winston": "3.8.2"
   }
 }
