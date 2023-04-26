@@ -137,6 +137,9 @@ Resources:
     Condition: CreateWeb
     Properties:
       BucketName: !Join ["-", [!Ref WebsiteS3BucketName, "log"]]
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerPreferred
       IntelligentTieringConfigurations:
         - Id: !Join ["-", [!Ref WebsiteS3BucketName, "log"]]
           Status: Enabled
