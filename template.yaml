@@ -17,7 +17,7 @@ Parameters:
 
   WebsiteS3BucketName:
     Type: String
-    #AllowedPattern: "(?!(^((2(5[0-5]|[0-4][0-9])|[01]?[0-9]{1,2})\\.){3}(2(5[0-5]|[0-4][0-9])|[01]?[0-9]{1,2})$|^xn--|.+-s3alias$))^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$"
+    AllowedPattern: "(?!(^xn--|.+-s3alias$))^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$"
     Default: ""
 
   NewSubscribersTableName:
