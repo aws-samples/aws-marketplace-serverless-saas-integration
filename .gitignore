@@ -4,4 +4,4 @@ node_modules
 .DS_Store
 packaged.yaml
 deploy.sh
-samconfig.toml
+*.toml

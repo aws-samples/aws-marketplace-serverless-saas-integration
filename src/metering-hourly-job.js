@@ -1,9 +1,8 @@
 const AWS = require('aws-sdk');
-
-const dynamodb = new AWS.DynamoDB({ apiVersion: '2012-08-10', region: 'us-east-1' });
-const sqs = new AWS.SQS({ apiVersion: '2012-11-05', region: 'us-east-1' });
-
-const { SQSMeteringRecordsUrl: QueueUrl, AWSMarketplaceMeteringRecordsTableName } = process.env;
+const { AWS_REGION: aws_region } = process.env;
+const dynamodb = new AWS.DynamoDB({ apiVersion: '2012-08-10', region: aws_region });
+const sqs = new AWS.SQS({ apiVersion: '2012-11-05', region: aws_region });
+const { SQSMeteringRecordsUrl: QueueUrl, AWSMarketplaceMeteringRecordsTableName: AWSMarketplaceMeteringRecordsTableName } = process.env;
 
 
 async function asyncForEach(array, callback) {
