@@ -17,7 +17,8 @@ Parameters:
 
   WebsiteS3BucketName:
     Type: String
-    AllowedPattern: "(?!(^xn--|.+-s3alias$))^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$"
+    #AllowedPattern: "(?!(^xn--|.+-s3alias$))^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$"
+    ConstraintDescription: "S3 bucket name must follow S3 recommendations https://docs.aws.amazon.com/AmazonS3/latest/userguide/bucketnamingrules.html"
     Default: ""
 
   NewSubscribersTableName:
@@ -531,8 +532,8 @@ Resources:
 
 
 Outputs:
-  BaseUrl:
-    Description: URL to replace baseUrl value in web/script.js.
+  RedirectUrl:
+    Description: URL to replace baseUrl value in web/script.js and lambda RedirectUrl (if applicable).
     Value: 
       !If [
         CreateWeb,
