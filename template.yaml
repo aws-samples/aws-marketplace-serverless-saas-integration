@@ -415,11 +415,17 @@ Resources:
         # Restricting access to cloudfront only.
         Statement:
           - Effect: Allow
+            Sid: "AllowCloudFrontServicePrincipal"
             Action: "s3:GetObject"
             Resource:
               - !Sub "arn:aws:s3:::${WebsiteS3Bucket}/*"
             Principal:
-              AWS: !Sub "arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity ${CloudFrontOriginAccessIdentity}"
+              Service: "cloudfront.amazonaws.com"
+            Condition:
+              StringEquals: 
+                "AWS:SourceArn" : 
+                  - !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/${CloudfrontDistribution}"
+                
 
   LambdaRedirectPostRequests:
     Type: AWS::Serverless::Function
@@ -447,12 +453,16 @@ Resources:
             Method: post  
             RestApiId: !Ref ServerlessApi
 
-  CloudFrontOriginAccessIdentity:
-    Type: "AWS::CloudFront::CloudFrontOriginAccessIdentity"
-    Condition: CreateWeb
-    Properties:
-      CloudFrontOriginAccessIdentityConfig:
-        Comment: !Sub "Serverless website OA - ${AWS::StackName}"
+  CloudFrontOriginAccessControl:
+    Type: "AWS::CloudFront::OriginAccessControl"
+    Properties: 
+      OriginAccessControlConfig: 
+        Description: !Sub "Origin Access Control for static website - ${AWS::StackName}"
+        Name: !Sub "OAC - ${AWS::StackName}"
+        OriginAccessControlOriginType: "s3"
+        SigningBehavior: "always"
+        SigningProtocol: "sigv4"
+
 
   CloudfrontDistribution:
     Type: "AWS::CloudFront::Distribution"
@@ -468,10 +478,9 @@ Resources:
         Origins:
           - Id: s3-website
             DomainName: !GetAtt WebsiteS3Bucket.DomainName
+            OriginAccessControlId: !Ref CloudFrontOriginAccessControl
             S3OriginConfig:
-              # Restricting Bucket access through an origin access identity
-              OriginAccessIdentity:
-                !Sub "origin-access-identity/cloudfront/${CloudFrontOriginAccessIdentity}"
+              OriginAccessIdentity: ""
           - Id: api-gateway
             DomainName: !Sub "${ServerlessApi}.execute-api.${AWS::Region}.amazonaws.com"
             CustomOriginConfig:
