@@ -1,8 +1,7 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
 Description: >
-  app
-  Sample SAM Template for app
+  AWS Marketplace Serverless SaaS Integration Application
 Globals:
   Function:
     Timeout: 15
