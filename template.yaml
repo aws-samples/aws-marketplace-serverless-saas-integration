@@ -476,7 +476,7 @@ Resources:
         # List of origins that Cloudfront will connect to
         Origins:
           - Id: s3-website
-            DomainName: !GetAtt WebsiteS3Bucket.DomainName
+            DomainName: !GetAtt WebsiteS3Bucket.RegionalDomainName
             OriginAccessControlId: !Ref CloudFrontOriginAccessControl
             S3OriginConfig:
               OriginAccessIdentity: ""
