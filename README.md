@@ -258,3 +258,19 @@ See [CONTRIBUTING](CONTRIBUTING.md#security-issue-notifications) for more inform
 ## License
 
 This library is licensed under the MIT-0 License. See the LICENSE file.
+
+
+## Post deployment steps
+
+## Registration page is true
+1. Update the MarketplaceFulfillmentUrl in your AWS Marketplace Management Portal with the value from the output key 'MarketplaceFulfillmentUrl'. The value would be in a the form of a AWS cloudfront based url.
+2. Replace the baseUrl value in the web/script.js file from the web template provided with the value from the output key 'RedirectUrl'. 
+3. Replace the RedirectUrl value in the lambda environment variable with the value from the output key 'RedirectUrl'. Navigate to the AWS Console, look for AWS Lambda service, filter to the lambda with name ....Redirect... . Select the lambda function, go to configuration tab and then select the environment variable. 
+4. Ensure the email address used is a verified identity/domain in Amazon Simple Email Service.
+5. Ensure your Amazon Simple Email Service account is a production account. 
+
+## Registration page is false
+1. Update the MarketplaceFulfillmentUrl in your AWS Marketplace Management Portal with the value from the output key 'MarketplaceFulfillmentUrl'. The value would be in the form of an AWS API gateway url.
+2. Replace the baseUrl value in the web/script.js file from the web template provided with the value from the output key 'RedirectUrl'.
+3. Ensure the email address used is a verified identity/domain in Amazon Simple Email Service.
+4. Ensure your Amazon Simple Email Service account is a production account.

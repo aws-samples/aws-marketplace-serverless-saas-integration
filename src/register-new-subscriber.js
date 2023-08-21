@@ -1,7 +1,6 @@
 const AWS = require('aws-sdk');
 const { NewSubscribersTableName: newSubscribersTableName, EntitlementQueueUrl: entitlementQueueUrl, MarketplaceSellerEmail: marketplaceSellerEmail, AWS_REGION:aws_region } = process.env;
 const ses = new AWS.SES({ region: aws_region});
-// Require confirmation on whether this has dependency on the marketplace seller account origin.
 const marketplacemetering = new AWS.MarketplaceMetering({ apiVersion: '2016-01-14', region: aws_region });
 const dynamodb = new AWS.DynamoDB({ apiVersion: '2012-08-10', region: aws_region });
 const sqs = new AWS.SQS({ apiVersion: '2012-11-05', region: aws_region });
