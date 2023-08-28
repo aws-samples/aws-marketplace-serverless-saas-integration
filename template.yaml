@@ -28,14 +28,6 @@ Parameters:
     AllowedPattern: ".*"
     Default: "AWSMarketplaceMeteringRecords"
 
-  TypeOfSaaSListing:
-    Type: String
-    Default: contracts_with_subscription
-    AllowedValues:
-      - contracts_with_subscription
-      - contracts
-      - subscriptions
-
   ProductCode:
     Type: String
     AllowedPattern: ".*"
@@ -49,10 +41,6 @@ Parameters:
     AllowedPattern: ".*"
     Default: ""
 
-  EntitlementSNSTopic:
-    Type: String
-    Default: ""
-
   SubscriptionSNSTopic:
     Type: String
     Default: ""
@@ -63,16 +51,6 @@ Parameters:
     AllowedValues: [true, false]
 
 Conditions:
-  CreateEntitlementLogic:
-    Fn::Or:
-      - !Equals [!Ref TypeOfSaaSListing, contracts_with_subscription]
-      - !Equals [!Ref TypeOfSaaSListing, contracts]
-
-  CreateSubscriptionLogic:
-    Fn::Or:
-      - !Equals [!Ref TypeOfSaaSListing, contracts_with_subscription]
-      - !Equals [!Ref TypeOfSaaSListing, subscriptions]
-
   CreateWeb: !Equals [!Ref CreateRegistrationWebPage, true]
   Buyernotificationemail: !Not [!Equals [!Ref MarketplaceSellerEmail, ""]]
 
@@ -101,7 +79,7 @@ Resources:
               # Restricting Bucket access through an origin access identity
               OriginAccessIdentity:
                 Fn::Sub: "origin-access-identity/cloudfront/${CloudFrontOriginAccessIdentity}"
-        # To connect the CDN to the origins you need to specify behaviours
+        # To connect the CDN to the origins you need to specify behaviors
         DefaultCacheBehavior:
           # Compress resources automatically ( gzip )
           Compress: true
@@ -185,7 +163,6 @@ Resources:
 
   AWSMarketplaceMeteringRecords:
     Type: AWS::DynamoDB::Table
-    Condition: CreateSubscriptionLogic
     Properties:
       AttributeDefinitions:
         - AttributeName: "customerIdentifier"
@@ -233,8 +210,6 @@ Resources:
       Environment:
         Variables:
           NewSubscribersTableName: !Ref NewSubscribersTableName
-          EntitlementQueueUrl:
-            !If [CreateEntitlementLogic, !Ref EntitlementSQSQueue, ""]
           MarketplaceSellerEmail:
             Fn::If:
               - Buyernotificationemail
@@ -250,15 +225,6 @@ Resources:
               Action:
                 - aws-marketplace:ResolveCustomer
               Resource: "*"
-        - !If
-          - CreateEntitlementLogic
-          - Statement:
-              - Sid: SQSPolicy
-                Effect: Allow
-                Action:
-                  - sqs:SendMessage
-                Resource: !GetAtt EntitlementSQSQueue.Arn
-          - !Ref "AWS::NoValue"
 
         - Statement:
             - Sid: Sendemail
@@ -272,41 +238,6 @@ Resources:
           Properties:
             Path: /subscriber
             Method: post
-
-  EntitlementSQSQueue:
-    Type: AWS::SQS::Queue
-    Condition: CreateEntitlementLogic
-
-  EntitlementSQSHandler:
-    Type: AWS::Serverless::Function
-    Condition: CreateEntitlementLogic
-    Properties:
-      CodeUri: src
-      Handler: entitlement-sqs.handler
-      Runtime: nodejs18.x
-      Environment:
-        Variables:
-          NewSubscribersTableName: !Ref NewSubscribersTableName
-      Policies:
-        - DynamoDBWritePolicy:
-            TableName: !Ref NewSubscribersTableName
-        - SQSSendMessagePolicy:
-            QueueName: !GetAtt EntitlementSQSQueue.Arn
-        - Statement:
-            - Sid: AWSMarketplaceEntitlements
-              Effect: Allow
-              Action:
-                - aws-marketplace:GetEntitlements
-              Resource: "*"
-      Events:
-        MySQSEvent:
-          Type: SNS
-          Properties:
-            Topic: !Ref EntitlementSNSTopic
-            SqsSubscription:
-              BatchSize: 1
-              QueueArn: !GetAtt EntitlementSQSQueue.Arn
-              QueueUrl: !Ref EntitlementSQSQueue
 
   SubscriptionSQSHandler:
     Type: AWS::Serverless::Function
@@ -369,7 +300,6 @@ Resources:
 
   Hourly:
     Type: AWS::Serverless::Function
-    Condition: CreateSubscriptionLogic
     Properties:
       CodeUri: src
       Handler: metering-hourly-job.job
@@ -399,11 +329,10 @@ Resources:
       ContentBasedDeduplication: true
       FifoQueue: true
       MessageRetentionPeriod: 3000
-    Condition: CreateSubscriptionLogic
+
 
   MeteringSQSHandler:
     Type: AWS::Serverless::Function
-    Condition: CreateSubscriptionLogic
     Properties:
       CodeUri: src
       Handler: metering-sqs.handler

@@ -1,4 +1,4 @@
-const baseUrl = 'https://API-ID.execute-api.us-east-1.amazonaws.com/Prod/'; // TODO: This needs to be replaced
+const baseUrl = "https://8imzu66b98.execute-api.us-east-1.amazonaws.com/Prod/" ; // TODO: This needs to be replaced
 const form = document.getElementsByClassName('form-signin')[0];
 
 const showAlert = (cssClass, message) => {
@@ -38,9 +38,7 @@ const handleFormSubmit = (event) => {
     const data = formToJSON(form.elements);
     data.regToken = regToken;
 
-
     const xhr = new XMLHttpRequest();
-
     xhr.open('POST', postUrl, true);
     xhr.setRequestHeader('Content-Type', 'application/json');
     xhr.send(JSON.stringify(data));
