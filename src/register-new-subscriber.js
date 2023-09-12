@@ -2,8 +2,7 @@ const AWS = require('aws-sdk');
 const ses = new AWS.SES({ region: "us-east-1" });
 const marketplacemetering = new AWS.MarketplaceMetering({ apiVersion: '2016-01-14', region: 'us-east-1' });
 const dynamodb = new AWS.DynamoDB({ apiVersion: '2012-08-10', region: 'us-east-1' });
-const sqs = new AWS.SQS({ apiVersion: '2012-11-05', region: 'us-east-1' });
-const { NewSubscribersTableName: newSubscribersTableName, EntitlementQueueUrl: entitlementQueueUrl, MarketplaceSellerEmail: marketplaceSellerEmail } = process.env;
+const { NewSubscribersTableName: newSubscribersTableName,  MarketplaceSellerEmail: marketplaceSellerEmail } = process.env;
 
 const lambdaResponse = (statusCode, body) => ({
   statusCode,
@@ -85,26 +84,7 @@ exports.registerNewSubscriber = async (event) => {
       };
 
       await dynamodb.putItem(dynamoDbParams).promise();
-
-      // Only for SaaS Contracts, check entitlement
-      if (entitlementQueueUrl) {
-        const SQSParams = {
-          MessageBody: `{ 
-              "Type": "Notification", 
-              "Message" : {
-                  "action" : "entitlement-updated",
-                  "customer-identifier": "${CustomerIdentifier}",
-                  "product-code" : "${ProductCode}"
-                  } 
-              }`,
-          QueueUrl: entitlementQueueUrl,
-        };
-        await sqs.sendMessage(SQSParams).promise();
-      }
-
       await setBuyerNotificationHandler(contactEmail);
-
-
 
       return lambdaResponse(200, 'Success! Registration completed. You have purchased an enterprise product that requires some additional setup. A representative from our team will be contacting you within two business days with your account credentials. Please contact Support through our website if you have any questions.');
     } catch (error) {

@@ -10,7 +10,6 @@ phases:
       - npm install aws-cli-js
       - echo "${CODEBUILD_WEBHOOK_TRIGGER}"
       - echo "${AWSMarketplaceMeteringRecordsTableName}"
-      - echo "${EntitlementSNSTopic}"
       - echo "${MarketplaceTechAdminEmail}"
       - echo "${NewSubscribersTableName}"
       - echo "${ProductCode}"
@@ -28,7 +27,6 @@ phases:
         --parameter-overrides \
         ParameterKey=WebsiteS3BucketName,ParameterValue=${WebsiteS3BucketName}-${CODEBUILD_BUILD_NUMBER} \
         ParameterKey=ProductCode,ParameterValue=${ProductCode} \
-        ParameterKey=EntitlementSNSTopic,ParameterValue=${EntitlementSNSTopic} \
         ParameterKey=SubscriptionSNSTopic,ParameterValue=${SubscriptionSNSTopic} \
         ParameterKey=AWSMarketplaceMeteringRecordsTableName,ParameterValue=${AWSMarketplaceMeteringRecordsTableName}-${CODEBUILD_BUILD_NUMBER} \
         ParameterKey=NewSubscribersTableName,ParameterValue=${NewSubscribersTableName}-${CODEBUILD_BUILD_NUMBER} \

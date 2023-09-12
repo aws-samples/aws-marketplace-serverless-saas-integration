@@ -40,17 +40,10 @@ exports.dynamodbStreamHandler = async (event, context) => {
     const revokeAccess = newImage.subscription_expired === true
       && !oldImage.subscription_expired;
 
-    let entitlementUpdated = false;
-
-    if (newImage.entitlement && oldImage.entitlement && (newImage.entitlement !== oldImage.entitlement)) {
-      entitlementUpdated = true;
-    }
-
     logger.debug('grantAccess', { 'data': grantAccess });
     logger.debug('revokeAccess:', { 'data': revokeAccess });
-    logger.debug('entitlementUpdated', { 'data': entitlementUpdated });
 
-    if (grantAccess || revokeAccess || entitlementUpdated) {
+    if (grantAccess || revokeAccess ) {
       let message = '';
       let subject = '';
 
@@ -61,9 +54,6 @@ exports.dynamodbStreamHandler = async (event, context) => {
       } else if (revokeAccess) {
         subject = 'AWS Marketplace customer end of subscription';
         message = `unsubscribe-success: ${JSON.stringify(newImage)}`;
-      } else if (entitlementUpdated) {
-        subject = 'AWS Marketplace customer change of subscription';
-        message = `entitlement-updated: ${JSON.stringify(newImage)}`;
       }
 
       const SNSparams = {
