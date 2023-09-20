@@ -42,8 +42,8 @@ exports.SQSHandler = async (event) => {
     }
 
     let isFreeTrialTermPresent = false;
-    if (typeof message.isFreeTrialTermPresent === "string")  {
-     isFreeTrialTermPresent = message.isFreeTrialTermPresent.toLowerCase() === "true";
+    if (typeof message.isFreeTrialTermPresent === "string") {
+      isFreeTrialTermPresent = message.isFreeTrialTermPresent.toLowerCase() === "true";
     }
 
     const dynamoDbParams = {
@@ -56,7 +56,7 @@ exports.SQSHandler = async (event) => {
         ':ac': { S: message['action'] },
         ':ss': { BOOL: successfullySubscribed },
         ':se': { BOOL: subscriptionExpired },
-        ':ft': { BOOL: isFreeTrialTermPresent}
+        ':ft': { BOOL: isFreeTrialTermPresent }
       },
       ReturnValues: 'UPDATED_NEW',
     };

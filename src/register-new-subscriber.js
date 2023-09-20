@@ -2,7 +2,7 @@ const AWS = require('aws-sdk');
 const ses = new AWS.SES({ region: "us-east-1" });
 const marketplacemetering = new AWS.MarketplaceMetering({ apiVersion: '2016-01-14', region: 'us-east-1' });
 const dynamodb = new AWS.DynamoDB({ apiVersion: '2012-08-10', region: 'us-east-1' });
-const { NewSubscribersTableName: newSubscribersTableName,  MarketplaceSellerEmail: marketplaceSellerEmail } = process.env;
+const { NewSubscribersTableName: newSubscribersTableName, MarketplaceSellerEmail: marketplaceSellerEmail } = process.env;
 
 const lambdaResponse = (statusCode, body) => ({
   statusCode,
@@ -42,18 +42,19 @@ const setBuyerNotificationHandler = function (contactEmail) {
     Source: marketplaceSellerEmail,
   };
 
-  return ses.sendEmail(params).promise()
+  // We remove this email for now, because a custim email is sent from ADT when User is created in Cognito
+  // return ses.sendEmail(params).promise()
 
 
 };
 
 exports.registerNewSubscriber = async (event) => {
   const {
-    regToken, companyName, contactPerson, contactPhone, contactEmail,
+    regToken, companyName, contactEmail, country, location
   } = JSON.parse(event.body);
 
   // Validate the request
-  if (regToken && companyName && contactPerson && contactPhone && contactEmail) {
+  if (regToken && contactEmail && companyName && country && location) {
     try {
       // Call resolveCustomer to validate the subscriber
       const resolveCustomerParams = {
@@ -73,12 +74,10 @@ exports.registerNewSubscriber = async (event) => {
         TableName: newSubscribersTableName,
         Item: {
           companyName: { S: companyName },
-          contactPerson: { S: contactPerson },
-          contactPhone: { S: contactPhone },
           contactEmail: { S: contactEmail },
           customerIdentifier: { S: CustomerIdentifier },
           productCode: { S: ProductCode },
-          customerAWSAccountID: { S: CustomerAWSAccountId },          
+          customerAWSAccountID: { S: CustomerAWSAccountId },
           created: { S: datetime },
         },
       };
