@@ -2,7 +2,7 @@ const AWS = require('aws-sdk');
 const ses = new AWS.SES({ region: "us-east-1" });
 const marketplacemetering = new AWS.MarketplaceMetering({ apiVersion: '2016-01-14', region: 'us-east-1' });
 const dynamodb = new AWS.DynamoDB({ apiVersion: '2012-08-10', region: 'us-east-1' });
-const { NewSubscribersTableName: newSubscribersTableName,  MarketplaceSellerEmail: marketplaceSellerEmail } = process.env;
+const { NewSubscribersTableName: newSubscribersTableName, MarketplaceSellerEmail: marketplaceSellerEmail } = process.env;
 
 const lambdaResponse = (statusCode, body) => ({
   statusCode,
@@ -53,7 +53,7 @@ exports.registerNewSubscriber = async (event) => {
   } = JSON.parse(event.body);
 
   // Validate the request
-  if (regToken && companyName && contactPerson && contactPhone && contactEmail) {
+  if (regToken && companyName && industry && country && contactEmail) {
     try {
       // Call resolveCustomer to validate the subscriber
       const resolveCustomerParams = {
@@ -73,18 +73,18 @@ exports.registerNewSubscriber = async (event) => {
         TableName: newSubscribersTableName,
         Item: {
           companyName: { S: companyName },
-          contactPerson: { S: contactPerson },
-          contactPhone: { S: contactPhone },
+          industry: { S: industry },
+          country: { S: country },
           contactEmail: { S: contactEmail },
           customerIdentifier: { S: CustomerIdentifier },
           productCode: { S: ProductCode },
-          customerAWSAccountID: { S: CustomerAWSAccountId },          
+          customerAWSAccountID: { S: CustomerAWSAccountId },
           created: { S: datetime },
         },
       };
 
       await dynamodb.putItem(dynamoDbParams).promise();
-      await setBuyerNotificationHandler(contactEmail);
+      await setBuyerNotificationHandler(contactEmail); // we probably don't need that, TODO: discuss
 
       return lambdaResponse(200, 'Success! Registration completed. You have purchased an enterprise product that requires some additional setup. A representative from our team will be contacting you within two business days with your account credentials. Please contact Support through our website if you have any questions.');
     } catch (error) {
