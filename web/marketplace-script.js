@@ -1,4 +1,4 @@
-const baseUrl = "https://8trx1me4c8.execute-api.us-east-1.amazonaws.com/Prod/ "; // TODO: This needs to be replaced
+const baseUrl = "https://zjq7hqr1j6.execute-api.us-east-1.amazonaws.com/Prod/"; // TODO: This needs to be replaced
 const form = document.getElementsByClassName('form-signin')[0];
 
 const showAlert = (cssClass, message) => {
@@ -38,6 +38,7 @@ const handleFormSubmit = (event) => {
   //     'Registration Token Missing. Please go to AWS Marketplace and follow the instructions to set up your account!');
   // } else {
   const data = formToJSON(form.elements);
+  console.log("Data is ", data)
   data.regToken = regToken ? regToken : "IamAToken123"; // TODO: change that
 
   const xhr = new XMLHttpRequest();

@@ -8,10 +8,9 @@ Globals:
     Timeout: 15
   Api:
     Cors:
-      AllowMethods: "'POST,OPTIONS'"
-      AllowHeaders: "'*'"
+      AllowMethods: "'GET,POST,OPTIONS'"
+      AllowHeaders: "'content-type'"
       AllowOrigin: "'*'"
-      AllowCredentials: "'*'"
 
 Parameters:
   WebsiteS3BucketName:

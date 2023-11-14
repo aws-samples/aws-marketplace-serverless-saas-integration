@@ -49,7 +49,7 @@ const setBuyerNotificationHandler = function (contactEmail) {
 
 exports.registerNewSubscriber = async (event) => {
   const {
-    regToken, companyName, contactPerson, contactPhone, contactEmail,
+    regToken, companyName, industry, country, contactEmail,
   } = JSON.parse(event.body);
 
   // Validate the request
