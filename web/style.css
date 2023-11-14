@@ -88,7 +88,7 @@ input:focus {
   outline: none;
 }
 
-a-button{
+button{
   display: inline-flex;
   letter-spacing: 0;
   padding: 12px 16px 12px 0;
@@ -104,15 +104,17 @@ a-button{
   margin-top: 16px;
 }
 
-a-button:hover {
+button:hover {
   background-color: #00629a;
 }
 
-a-button:active {
+button:active {
   background-color: #004975;
+  border-radius: 0px !important;
+  border: none !important;
 }
 
-a-button:disabled {
+button:disabled {
   cursor: default;
   background-color: #c1c7cc;
   color: #8a9097;

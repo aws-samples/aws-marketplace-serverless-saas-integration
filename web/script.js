@@ -1,6 +1,7 @@
 const baseUrl = "https://8trx1me4c8.execute-api.us-east-1.amazonaws.com/Prod/ "; // TODO: This needs to be replaced
 const form = document.getElementsByClassName('form-signin')[0];
 
+console.log("hello")
 const showAlert = (cssClass, message) => {
   const html = `
     <div class="alert alert-${cssClass} alert-dismissible" role="alert">
@@ -25,10 +26,12 @@ const getUrlParameter = (name) => {
   return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
 };
 
+
 const handleFormSubmit = (event) => {
+  console.log(form)
   event.preventDefault();
 
-  const postUrl = `${baseUrl}subscriber`;
+  // const postUrl = `${baseUrl}subscriber`;
   // TODO: add condition later
   const regToken = getUrlParameter('x-amzn-marketplace-token');
 
@@ -38,6 +41,14 @@ const handleFormSubmit = (event) => {
   //     'Registration Token Missing. Please go to AWS Marketplace and follow the instructions to set up your account!');
   // } else {
   const data = formToJSON(form.elements);
+  console.log("Data is ", data);
+  if (!data["contactEmail"] || data["contactEmail"] === "" || validateEmail(email) === false) {
+    console.log("WRONG EMAIl")
+    const errorMessage = document.getElementById("errorMessage")
+    errorMessage.style.display = "block"
+  } else {
+    errorMessage.style.display = "none"
+  }
   data.regToken = regToken ? regToken : "IamAToken123";
 
   const xhr = new XMLHttpRequest();
@@ -54,6 +65,13 @@ const handleFormSubmit = (event) => {
 }
 // };
 
+const validateEmail = (email) => {
+  return String(email)
+    .toLowerCase()
+    .match(
+      /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|.(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
+    );
+};
 
 form.addEventListener('submit', handleFormSubmit);
 

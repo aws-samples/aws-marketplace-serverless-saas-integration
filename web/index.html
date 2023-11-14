@@ -49,26 +49,28 @@
     <img class="logo" src="logo.png"></img>
   </div>
   <main>
-    <form>
+    <div id="alert"></div>
+    <form class="form-signin">
       <h4>Automotive <br>Data Transformer</h4>
       <h5>Sign up</h5>
       <div class="a-text-field">
         <label for="companyname">Company Name</label>
-        <input type="text" id="companyname" />
+        <input name="companyName" type="text" id="companyname" />
       </div>
       <div class="a-text-field">
         <label for="country">Country</label>
-        <input type="text" id="country" />
+        <input name="country" type="text" id="country" />
       </div>
       <div class="a-text-field">
         <label for="location">Location</label>
-        <input type="text" id="location" />
+        <input name="location"  type="text" id="location" />
       </div>
       <div class="a-text-field">
         <label for="contactEmail">Your Company Email *</label>
-        <input type="text" id="contactEmail" />
+        <input type="text" name="contactEmail" id="contactEmail" />
+        <span style="display: none;" id="errorMessage">Error</span>
       </div>
-      <a-button type="submit">Register</a-button>
+      <button @onclick="submit()" type="submit">Register</button>
     </form>
   </main>
   <div>
@@ -117,7 +119,7 @@
     integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
     crossorigin="anonymous"></script>
 
-  <script src="/script.js"></script>
+  <script src="./script.js"></script>
 
 </body>
 
