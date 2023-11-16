@@ -1,7 +1,5 @@
 const baseUrl = "https://8trx1me4c8.execute-api.us-east-1.amazonaws.com/Prod/ "; // TODO: This needs to be replaced
 const form = document.getElementsByClassName('form-signin')[0];
-
-console.log("hello")
 const showAlert = (cssClass, message) => {
   const html = `
     <div class="alert alert-${cssClass} alert-dismissible" role="alert">
@@ -41,13 +39,15 @@ const handleFormSubmit = (event) => {
   //     'Registration Token Missing. Please go to AWS Marketplace and follow the instructions to set up your account!');
   // } else {
   const data = formToJSON(form.elements);
-  console.log("Data is ", data);
-  if (!data["contactEmail"] || data["contactEmail"] === "" || validateEmail(email) === false) {
-    console.log("WRONG EMAIl")
+  const registerButton = document.getElementById("register-button");
+
+  if (!data["contactEmail"] || data["contactEmail"] === "" || validateEmail(data["contactEmail"]) === null) {
     const errorMessage = document.getElementById("errorMessage")
-    errorMessage.style.display = "block"
+    errorMessage.style.display = "flex"
+    registerButton.classList.add("register-button")
   } else {
     errorMessage.style.display = "none"
+    registerButton.classList.remove("register-button")
   }
   data.regToken = regToken ? regToken : "IamAToken123";
 

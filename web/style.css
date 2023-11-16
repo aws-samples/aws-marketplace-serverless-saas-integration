@@ -93,6 +93,7 @@ button{
   letter-spacing: 0;
   padding: 12px 16px 12px 0;
   border: 0;
+  outline: 0 !important;
   cursor: pointer;
   justify-content: center;
   width: 100%;
@@ -101,7 +102,11 @@ button{
   overflow: hidden;
   color: #fff;
   background-color: #007bc0;
-  margin-top: 16px;
+  margin-top: 10px;
+}
+
+.register-button{
+  margin-top: 32px;
 }
 
 button:hover {
@@ -110,8 +115,6 @@ button:hover {
 
 button:active {
   background-color: #004975;
-  border-radius: 0px !important;
-  border: none !important;
 }
 
 button:disabled {
@@ -151,10 +154,6 @@ button:disabled {
   order: 1;
 }
 
-.a-icon {
-  font-size: 18px;
-  margin-right: 4px;
-}
 
 .o-footer__links {
   margin-bottom: 0;
@@ -182,6 +181,27 @@ a:hover{
 }
 a:active{
   color: #00629a;
+}
+
+.a-notification {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  padding: 4px 16px;
+  color: #000;
+  background-color: #ffd9d9;
+}
+
+.a-icon-warn {
+  width: 18px;
+  margin-left: -4px;
+  margin-right: 6px;
+  content: url("alert-error.svg");
+  font-size: 8px;
+}
+
+.a-text-field-warn {
+  font-size: 12px;
 }
 
 

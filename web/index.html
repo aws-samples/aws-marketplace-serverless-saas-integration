@@ -68,9 +68,14 @@
       <div class="a-text-field">
         <label for="contactEmail">Your Company Email *</label>
         <input type="text" name="contactEmail" id="contactEmail" />
-        <span style="display: none;" id="errorMessage">Error</span>
+
+        <div class="a-notification" role="alert" style="display: none;" id="errorMessage"
+          >
+          <i class="a-icon-warn"></i>
+          <div class="a-text-field-warn">Invalid Email</div>
+        </div>
       </div>
-      <button @onclick="submit()" type="submit">Register</button>
+      <button id="register-button" @onclick="submit()" type="submit">Register</button>
     </form>
   </main>
   <div>
