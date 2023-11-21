@@ -162,6 +162,8 @@ Resources:
 
   AWSMarketplaceMeteringRecords:
     Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       AttributeDefinitions:
         - AttributeName: "customerIdentifier"
@@ -188,6 +190,8 @@ Resources:
 
   AWSMarketplaceSubscribers:
     Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       AttributeDefinitions:
         - AttributeName: "customerIdentifier"
@@ -204,7 +208,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: src/
-      Handler: register-new-subscriber.registerNewSubscriber
+      Handler: register-new-subscriber.handler
       Runtime: nodejs18.x
       Environment:
         Variables:
@@ -323,6 +327,8 @@ Resources:
 
   SQSMeteringRecords:
     Type: AWS::SQS::Queue
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       QueueName: !Join ["-", [!Ref AWS::StackName, SQSMeteringRecords.fifo]]
       ContentBasedDeduplication: true

@@ -1,4 +1,4 @@
-const baseUrl = "https://zjq7hqr1j6.execute-api.us-east-1.amazonaws.com/Prod/"; // TODO: This needs to be replaced
+const baseUrl = "https://zy1puljtra.execute-api.us-east-1.amazonaws.com/Prod/"; // TODO: This needs to be replaced
 const form = document.getElementsByClassName('form-signin')[0];
 
 const showAlert = (cssClass, message) => {

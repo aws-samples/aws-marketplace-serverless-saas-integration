@@ -47,7 +47,7 @@ const setBuyerNotificationHandler = function (contactEmail) {
 
 };
 
-exports.registerNewSubscriber = async (event) => {
+exports.handler = async (event) => {
   const {
     regToken, companyName, industry, country, contactEmail,
   } = JSON.parse(event.body);
@@ -55,17 +55,22 @@ exports.registerNewSubscriber = async (event) => {
   // Validate the request
   if (regToken && companyName && industry && country && contactEmail) {
     try {
+      // TODO: Uncomment the next 10 lines 
       // Call resolveCustomer to validate the subscriber
-      const resolveCustomerParams = {
-        RegistrationToken: regToken,
-      };
+      // const resolveCustomerParams = {
+      //   RegistrationToken: regToken,
+      // };
 
-      const resolveCustomerResponse = await marketplacemetering
-        .resolveCustomer(resolveCustomerParams)
-        .promise();
+      // const resolveCustomerResponse = await marketplacemetering
+      //   .resolveCustomer(resolveCustomerParams)
+      //   .promise();
 
-      // Store new subscriber data in dynamoDb
-      const { CustomerIdentifier, ProductCode, CustomerAWSAccountId } = resolveCustomerResponse;
+      // // Store new subscriber data in dynamoDb
+      // const { CustomerIdentifier, ProductCode, CustomerAWSAccountId } = resolveCustomerResponse;
+
+      const CustomerIdentifier = "customerId111111";
+      const ProductCode = "ProductCode1111"
+      const CustomerAWSAccountId = "customerAWSAccountId1111"
 
       const datetime = new Date().getTime().toString();
 
