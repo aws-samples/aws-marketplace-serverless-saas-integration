@@ -31,13 +31,19 @@ Parameters:
     Type: String
     AllowedPattern: ".*"
 
-  MarketplaceTechAdminEmail:
-    Type: String
-    AllowedPattern: ".*"
-
   MarketplaceSellerEmail:
     Type: String
     AllowedPattern: ".*"
+    Default: ""
+
+  UserRegistrationTopic:
+    Type: "String"
+  
+  UserRemoveTopic:
+    Type: "String"
+
+  SupportSNSTopic:
+    Type: "String"
     Default: ""
 
   SubscriptionSNSTopic:
@@ -268,13 +274,6 @@ Resources:
             Topic: !Ref SubscriptionSNSTopic
             SqsSubscription: true
 
-  SupportSNSTopic:
-    Type: AWS::SNS::Topic
-    Properties:
-      Subscription:
-        - Endpoint: !Ref MarketplaceTechAdminEmail
-          Protocol: email
-
   GrantOrRevokeAccess:
     Type: AWS::Serverless::Function
     Properties:
@@ -284,6 +283,8 @@ Resources:
       Environment:
         Variables:
           SupportSNSArn: !Ref SupportSNSTopic
+          UserRegistrationTopic: !Ref UserRegistrationTopic
+          UserRemoveTopic: !Ref UserRemoveTopic
           LOG_LEVEL: "info"
       Policies:
         - AWSLambdaDynamoDBExecutionRole
@@ -292,7 +293,10 @@ Resources:
               Effect: Allow
               Action:
                 - sns:Publish
-              Resource: !Ref SupportSNSTopic
+              Resource: 
+              - !Ref SupportSNSTopic
+              - !Ref UserRegistrationTopic
+              - !Ref UserRemoveTopic
       Events:
         Stream:
           Type: DynamoDB
