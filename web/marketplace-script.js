@@ -1,4 +1,4 @@
-const baseUrl = "https://8trx1me4c8.execute-api.us-east-1.amazonaws.com/Prod/ "; // TODO: This needs to be replaced
+const baseUrl = "https://zy1puljtra.execute-api.us-east-1.amazonaws.com/Prod/"; // TODO: This needs to be replaced
 const form = document.getElementsByClassName('form-signin')[0];
 const showAlert = (cssClass, message) => {
   const html = `
@@ -29,7 +29,7 @@ const handleFormSubmit = (event) => {
   console.log(form)
   event.preventDefault();
 
-  // const postUrl = `${baseUrl}subscriber`;
+  const postUrl = `${baseUrl}subscriber`;
   // TODO: add condition later
   const regToken = getUrlParameter('x-amzn-marketplace-token');
 
@@ -74,12 +74,6 @@ const validateEmail = (email) => {
 };
 
 form.addEventListener('submit', handleFormSubmit);
-
-const regToken = getUrlParameter('x-amzn-marketplace-token');
-// TODO: comment it back
-// if (!regToken) {
-//   showAlert('danger', 'Registration Token Missing. Please go to AWS Marketplace and follow the instructions to set up your account!');
-// }
 
 if (!baseUrl) {
   showAlert('danger', 'Please update the baseUrl');

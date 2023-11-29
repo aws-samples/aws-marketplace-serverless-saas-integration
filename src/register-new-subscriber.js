@@ -48,25 +48,30 @@ const setBuyerNotificationHandler = function (contactEmail) {
 
 };
 
-exports.registerNewSubscriber = async (event) => {
+exports.handler = async (event) => {
   const {
-    regToken, companyName, contactEmail, country, location
+    regToken, companyName, industry, country, contactEmail,
   } = JSON.parse(event.body);
 
   // Validate the request
-  if (regToken && contactEmail && companyName && country && location) {
+  if (regToken && companyName && industry && country && contactEmail) {
     try {
+      // TODO: Uncomment the next 10 lines 
       // Call resolveCustomer to validate the subscriber
-      const resolveCustomerParams = {
-        RegistrationToken: regToken,
-      };
+      // const resolveCustomerParams = {
+      //   RegistrationToken: regToken,
+      // };
 
-      const resolveCustomerResponse = await marketplacemetering
-        .resolveCustomer(resolveCustomerParams)
-        .promise();
+      // const resolveCustomerResponse = await marketplacemetering
+      //   .resolveCustomer(resolveCustomerParams)
+      //   .promise();
 
-      // Store new subscriber data in dynamoDb
-      const { CustomerIdentifier, ProductCode, CustomerAWSAccountId } = resolveCustomerResponse;
+      // // Store new subscriber data in dynamoDb
+      // const { CustomerIdentifier, ProductCode, CustomerAWSAccountId } = resolveCustomerResponse;
+
+      const CustomerIdentifier = "customerId111111";
+      const ProductCode = "ProductCode1111"
+      const CustomerAWSAccountId = "customerAWSAccountId1111"
 
       const datetime = new Date().getTime().toString();
 
@@ -74,6 +79,8 @@ exports.registerNewSubscriber = async (event) => {
         TableName: newSubscribersTableName,
         Item: {
           companyName: { S: companyName },
+          industry: { S: industry },
+          country: { S: country },
           contactEmail: { S: contactEmail },
           customerIdentifier: { S: CustomerIdentifier },
           productCode: { S: ProductCode },
@@ -83,7 +90,7 @@ exports.registerNewSubscriber = async (event) => {
       };
 
       await dynamodb.putItem(dynamoDbParams).promise();
-      await setBuyerNotificationHandler(contactEmail);
+      await setBuyerNotificationHandler(contactEmail); // we probably don't need that, TODO: discuss
 
       return lambdaResponse(200, 'Success! Registration completed. You have purchased an enterprise product that requires some additional setup. A representative from our team will be contacting you within two business days with your account credentials. Please contact Support through our website if you have any questions.');
     } catch (error) {

@@ -8,10 +8,9 @@ Globals:
     Timeout: 15
   Api:
     Cors:
-      AllowMethods: "'POST,OPTIONS'"
-      AllowHeaders: "'*'"
+      AllowMethods: "'GET,POST,OPTIONS'"
+      AllowHeaders: "'content-type'"
       AllowOrigin: "'*'"
-      AllowCredentials: "'*'"
 
 Parameters:
   WebsiteS3BucketName:
@@ -32,13 +31,19 @@ Parameters:
     Type: String
     AllowedPattern: ".*"
 
-  MarketplaceTechAdminEmail:
-    Type: String
-    AllowedPattern: ".*"
-
   MarketplaceSellerEmail:
     Type: String
     AllowedPattern: ".*"
+    Default: ""
+
+  UserRegistrationTopic:
+    Type: "String"
+  
+  UserRemoveTopic:
+    Type: "String"
+
+  SupportSNSTopic:
+    Type: "String"
     Default: ""
 
   SubscriptionSNSTopic:
@@ -163,6 +168,8 @@ Resources:
 
   AWSMarketplaceMeteringRecords:
     Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       AttributeDefinitions:
         - AttributeName: "customerIdentifier"
@@ -189,6 +196,8 @@ Resources:
 
   AWSMarketplaceSubscribers:
     Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       AttributeDefinitions:
         - AttributeName: "customerIdentifier"
@@ -205,7 +214,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: src/
-      Handler: register-new-subscriber.registerNewSubscriber
+      Handler: register-new-subscriber.handler
       Runtime: nodejs18.x
       Environment:
         Variables:
@@ -265,13 +274,6 @@ Resources:
             Topic: !Ref SubscriptionSNSTopic
             SqsSubscription: true
 
-  SupportSNSTopic:
-    Type: AWS::SNS::Topic
-    Properties:
-      Subscription:
-        - Endpoint: !Ref MarketplaceTechAdminEmail
-          Protocol: email
-
   GrantOrRevokeAccess:
     Type: AWS::Serverless::Function
     Properties:
@@ -281,6 +283,8 @@ Resources:
       Environment:
         Variables:
           SupportSNSArn: !Ref SupportSNSTopic
+          UserRegistrationTopic: !Ref UserRegistrationTopic
+          UserRemoveTopic: !Ref UserRemoveTopic
           LOG_LEVEL: "info"
       Policies:
         - AWSLambdaDynamoDBExecutionRole
@@ -289,7 +293,10 @@ Resources:
               Effect: Allow
               Action:
                 - sns:Publish
-              Resource: !Ref SupportSNSTopic
+              Resource: 
+              - !Ref SupportSNSTopic
+              - !Ref UserRegistrationTopic
+              - !Ref UserRemoveTopic
       Events:
         Stream:
           Type: DynamoDB
@@ -324,6 +331,8 @@ Resources:
 
   SQSMeteringRecords:
     Type: AWS::SQS::Queue
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       QueueName: !Join ["-", [!Ref AWS::StackName, SQSMeteringRecords.fifo]]
       ContentBasedDeduplication: true
