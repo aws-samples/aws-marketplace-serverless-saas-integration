@@ -244,7 +244,18 @@ a:active{
   font-size: 12px;
 }
 
+#alert{
+  position: absolute;
+  width: 50%;
+  left: 25%;
+  top: 5%
+}
 
+.close span{
+  position: absolute;
+  top: -5px;
+  right: 5px
+}
 
 @media (min-width: 768px) {
   .o-footer__bottom {
@@ -278,7 +289,7 @@ a:active{
   }
 
 }
-  
+
 @font-face {
   font-family: 'BoschSans-Regular';
   src: url('../BoschSans-Regular-v5_003.ttf');
