@@ -178,7 +178,7 @@ To build and deploy your application for the first time, run the following in yo
 #Create non-public bucket for <DEPLOYMENT_ARTEFACT_S3_BUCKET> before running this script
 
 sam build
-sam package --output-template-file packaged.yaml --s3-bucket <DEPLOYMENT_ARTEFACT_S3_BUCKET>
+sam package --output-template-file packaged.yaml --s3-bucket <DEPLOYMENT_ARTEFACT_S3_BUCKET>sam
 
 sam deploy --template-file packaged.yaml --stack-name <STACK_NAME> --capabilities CAPABILITY_IAM \
 --region us-east-1 \
@@ -197,6 +197,9 @@ ParameterKey=WebsiteS3BucketName,ParameterValue=<WEBSITE_BUCKET_NAME> \
 ParameterKey=ProductCode,ParameterValue=<MARKETPLACE_PRODUCT_CODE> \
 ParameterKey=EntitlementSNSTopic,ParameterValue=<MARKETPLACE_ENTITLEMENT_SNS_TOPIC> \
 ParameterKey=SubscriptionSNSTopic,ParameterValue=<MARKETPLACE_SUBSCRIPTION_SNS_TOPIC> \
+ParameterKey=SupportSNSTopic,ParameterValue=<SUPPORT_SNS_TOPIC_TO_SEND_TO_TECH:EMAIL> \
+ParameterKey=UserRegistrationTopic,ParameterValue=<TOPIC_TO_REGISTER_NEW_CUSTOMERS> \
+ParameterKey=UserRemoveTopic,ParameterValue=<TOPIC_TO_REMOVE_UNSUBSCRIBED_CUSTOMERS> \
 ParameterKey=MarketplaceTechAdminEmail,ParameterValue=<MARKETPLACE_TECH_ADMIN_EMAIL> \
 ParameterKey=MarketplaceSellerEmail,ParameterValue=<SELLERSESVERIFIEDEMAILADDRESS>
 
