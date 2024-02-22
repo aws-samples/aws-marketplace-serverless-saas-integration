@@ -1,8 +1,7 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
 Description: >
-  app
-  Sample SAM Template for app
+  AWS Marketplace Serverless SaaS Integration Application
 Globals:
   Function:
     Timeout: 15
@@ -14,8 +13,11 @@ Globals:
       AllowCredentials: "'*'"
 
 Parameters:
+
   WebsiteS3BucketName:
     Type: String
+    #AllowedPattern: "(?!(^xn--|.+-s3alias$))^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$"
+    ConstraintDescription: "S3 bucket name must follow S3 recommendations https://docs.aws.amazon.com/AmazonS3/latest/userguide/bucketnamingrules.html"
     Default: ""
 
   NewSubscribersTableName:
@@ -49,13 +51,20 @@ Parameters:
     AllowedPattern: ".*"
     Default: ""
 
-  EntitlementSNSTopic:
+  CreateCrossAccountRole:
+    Default: false
+    Description: "Do you intend to use cross account access with this integration core?"
     Type: String
-    Default: ""
+    AllowedValues: [true, false]
+  
+  CrossAccountId:
+    Default: ''
+    Description: "Enter the cross AWS account id"
+    Type: String
 
-  SubscriptionSNSTopic:
+  CrossAccountRoleName: 
     Type: String
-    Default: ""
+    Description: "Your Role Name (ex: OrganizationAccountAccessRole); This will need to be the same across all of the Member Accounts"
 
   CreateRegistrationWebPage:
     Default: true
@@ -75,114 +84,56 @@ Conditions:
 
   CreateWeb: !Equals [!Ref CreateRegistrationWebPage, true]
   Buyernotificationemail: !Not [!Equals [!Ref MarketplaceSellerEmail, ""]]
+  CreateCrossAccount: !Equals [!Ref CreateCrossAccountRole, true]
+
 
 Resources:
-  CloudFrontOriginAccessIdentity:
-    Type: "AWS::CloudFront::CloudFrontOriginAccessIdentity"
-    Condition: CreateWeb
-    Properties:
-      CloudFrontOriginAccessIdentityConfig:
-        Comment: "Serverless website OA"
 
-  CloudfrontDistribution:
-    Type: "AWS::CloudFront::Distribution"
-    Condition: CreateWeb
+  ServerlessApi:
+    Type: AWS::Serverless::Api
     Properties:
-      DistributionConfig:
-        Comment: "Cloudfront distribution for serverless website"
-        DefaultRootObject: "index.html"
-        Enabled: true
-        HttpVersion: http2
-        # List of origins that Cloudfront will connect to
-        Origins:
-          - Id: s3-website
-            DomainName: !GetAtt WebsiteS3Bucket.DomainName
-            S3OriginConfig:
-              # Restricting Bucket access through an origin access identity
-              OriginAccessIdentity:
-                Fn::Sub: "origin-access-identity/cloudfront/${CloudFrontOriginAccessIdentity}"
-        # To connect the CDN to the origins you need to specify behaviours
-        DefaultCacheBehavior:
-          # Compress resources automatically ( gzip )
-          Compress: true
-          AllowedMethods:
-            - HEAD
-            - DELETE
-            - POST
-            - GET
-            - OPTIONS
-            - PUT
-            - PATCH
-          ForwardedValues:
-            QueryString: false
-          LambdaFunctionAssociations:
-            - EventType: viewer-request
-              LambdaFunctionARN: !Ref LambdaEdgeRedirectPostRequests.Version
-              IncludeBody: true
-          TargetOriginId: s3-website
-          ViewerProtocolPolicy: redirect-to-https
-        Logging:
-          Bucket: !GetAtt WebsiteS3BucketLog.DomainName
-          IncludeCookies: false
-          Prefix: "access-logs"
+      StageName: Prod
+      MethodSettings:
+        - ResourcePath: /subscriber
+          HttpMethod: POST, OPTIONS
+        - ResourcePath: /redirectmarketplacetoken
+          HttpMethod: POST, OPTIONS
 
-  WebsiteS3Bucket:
-    Type: AWS::S3::Bucket
-    Condition: CreateWeb
+  CrossAccountRoleForSaaSIntegration:
+    Type: AWS::IAM::Role
+    Condition: CreateCrossAccount
+    DependsOn: 
+     - AWSMarketplaceMeteringRecords 
+     - AWSMarketplaceSubscribers
     Properties:
-      BucketName: !Ref WebsiteS3BucketName
-
-  WebsiteS3BucketLog:
-    Type: AWS::S3::Bucket
-    Condition: CreateWeb
-    Properties:
-      BucketName: !Join ["-", [!Ref WebsiteS3BucketName, "log"]]
-      OwnershipControls:
-        Rules:
-          - ObjectOwnership: BucketOwnerPreferred
-      IntelligentTieringConfigurations:
-        - Id: !Join ["-", [!Ref WebsiteS3BucketName, "log"]]
-          Status: Enabled
-          Tierings:
-            - AccessTier: ARCHIVE_ACCESS
-              Days: 90
-
-  S3BucketPolicy:
-    Type: AWS::S3::BucketPolicy
-    Condition: CreateWeb
-    Properties:
-      Bucket: !Ref WebsiteS3Bucket
-      PolicyDocument:
-        # Restricting access to cloudfront only.
+      RoleName: !Join ["-", [!Ref "AWS::StackName", !Ref CrossAccountRoleName]]
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
         Statement:
           - Effect: Allow
-            Action: "s3:GetObject"
-            Resource:
-              - !Sub "arn:aws:s3:::${WebsiteS3Bucket}/*"
             Principal:
-              AWS: !Sub "arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity ${CloudFrontOriginAccessIdentity}"
-
-  LambdaEdgeRedirectPostRequests:
-    Type: AWS::Serverless::Function
-    Condition: CreateWeb
-    UpdateReplacePolicy: Delete
-    DeletionPolicy: Delete
-    Properties:
-      Runtime: nodejs18.x
-      CodeUri: src/lambda-edge/
-      Handler: edge-redirect.lambdaHandler
-      Timeout: 5
-      AutoPublishAlias: live
-      AssumeRolePolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Effect: "Allow"
-            Action: "sts:AssumeRole"
-            Principal:
-              Service:
-                - "lambda.amazonaws.com"
-                - "edgelambda.amazonaws.com"
-
+              AWS:
+                - !Join [":", ["arn:aws:iam:", !Ref CrossAccountId , "root"]]
+            Action:
+              - 'sts:AssumeRole'
+            Condition:
+              StringEquals:
+                'sts:ExternalId': !Ref CrossAccountRoleName
+      Path: /
+      Policies:
+        - PolicyName: !Join ["-", [!Ref "AWS::StackName", "CrossAccountPolicy"]]
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'dynamodb:PutItem'
+                  - 'dynamodb:DeleteItem'
+                  - 'dynamodb:UpdateItem'
+                Resource:
+                  - !GetAtt AWSMarketplaceMeteringRecords.Arn
+                  - !GetAtt AWSMarketplaceSubscribers.Arn
+                  
   AWSMarketplaceMeteringRecords:
     Type: AWS::DynamoDB::Table
     Condition: CreateSubscriptionLogic
@@ -223,7 +174,7 @@ Resources:
       TableName: !Ref NewSubscribersTableName
       StreamSpecification:
         StreamViewType: NEW_AND_OLD_IMAGES
-
+  
   RegisterNewMarketplaceCustomer:
     Type: AWS::Serverless::Function
     Properties:
@@ -234,13 +185,9 @@ Resources:
         Variables:
           NewSubscribersTableName: !Ref NewSubscribersTableName
           EntitlementQueueUrl:
-            !If [CreateEntitlementLogic, !Ref EntitlementSQSQueue, ""]
+            !If [CreateEntitlementLogic, !Ref EntitlementSQSQueue, !Ref AWS::NoValue]
           MarketplaceSellerEmail:
-            Fn::If:
-              - Buyernotificationemail
-              - Ref: MarketplaceSellerEmail
-              - Ref: AWS::NoValue
-
+            !If [Buyernotificationemail, !Ref MarketplaceSellerEmail, !Ref AWS::NoValue]
       Policies:
         - DynamoDBWritePolicy:
             TableName: !Ref NewSubscribersTableName
@@ -272,6 +219,7 @@ Resources:
           Properties:
             Path: /subscriber
             Method: post
+            RestApiId: !Ref ServerlessApi
 
   EntitlementSQSQueue:
     Type: AWS::SQS::Queue
@@ -302,7 +250,8 @@ Resources:
         MySQSEvent:
           Type: SNS
           Properties:
-            Topic: !Ref EntitlementSNSTopic
+            Topic:  {"Fn::Join" : ["", ["arn:aws:sns:us-east-1:287250355862:aws-mp-entitlement-notification-", !Ref ProductCode]]}
+            Region: us-east-1
             SqsSubscription:
               BatchSize: 1
               QueueArn: !GetAtt EntitlementSQSQueue.Arn
@@ -331,7 +280,9 @@ Resources:
         MySQSEvent:
           Type: SNS
           Properties:
-            Topic: !Ref SubscriptionSNSTopic
+            #Topic: !Ref SubscriptionSNSTopic
+            Topic: {"Fn::Join" : ["", ["arn:aws:sns:us-east-1:287250355862:aws-mp-subscription-notification-", !Ref ProductCode]]}
+            Region: us-east-1
             SqsSubscription: true
 
   SupportSNSTopic:
@@ -427,16 +378,200 @@ Resources:
           Properties:
             Queue: !GetAtt SQSMeteringRecords.Arn
             BatchSize: 1
+
+  
+          Bucket: !GetAtt WebsiteS3BucketLog.DomainName
+          IncludeCookies: false
+          Prefix: "access-logs"
+
+  WebsiteS3Bucket:
+    Type: AWS::S3::Bucket
+    Condition: CreateWeb
+    Properties:
+      BucketName: !Ref WebsiteS3BucketName
+
+  WebsiteS3BucketLog:
+    Type: AWS::S3::Bucket
+    Condition: CreateWeb
+    Properties:
+      BucketName: !Join ["-", [!Ref WebsiteS3BucketName, "log"]]
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerPreferred
+      IntelligentTieringConfigurations:
+        - Id: !Join ["-", [!Ref WebsiteS3BucketName, "log"]]
+          Status: Enabled
+          Tierings:
+            - AccessTier: ARCHIVE_ACCESS
+              Days: 90
+
+  S3BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Condition: CreateWeb
+    Properties:
+      Bucket: !Ref WebsiteS3Bucket
+      PolicyDocument:
+        # Restricting access to cloudfront only.
+        Statement:
+          - Effect: Allow
+            Sid: "AllowCloudFrontServicePrincipal"
+            Action: "s3:GetObject"
+            Resource:
+              - !Sub "arn:aws:s3:::${WebsiteS3Bucket}/*"
+            Principal:
+              Service: "cloudfront.amazonaws.com"
+            Condition:
+              StringEquals: 
+                "AWS:SourceArn" : 
+                  - !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/${CloudfrontDistribution}"
+                
+
+  LambdaRedirectPostRequests:
+    Type: AWS::Serverless::Function
+    Condition: CreateWeb
+    Properties:
+      Runtime: nodejs18.x
+      CodeUri: src/
+      Handler: redirect.redirecthandler
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Action: "sts:AssumeRole"
+            Principal:
+              Service:
+                - "lambda.amazonaws.com"
+      Environment:
+        Variables:
+          RedirectUrl: https://aws-ia.github.io/cloudformation-aws-marketplace-saas/#_post_deployment_steps
+      Events:
+        RedirectMarketplaceToken:
+          Type: Api
+          Properties:
+            Path: /redirectmarketplacetoken
+            Method: post  
+            RestApiId: !Ref ServerlessApi
+
+  CloudFrontOriginAccessControl:
+    Type: "AWS::CloudFront::OriginAccessControl"
+    Properties: 
+      OriginAccessControlConfig: 
+        Description: !Sub "Origin Access Control for static website - ${AWS::StackName}"
+        Name: !Sub "OAC - ${AWS::StackName}"
+        OriginAccessControlOriginType: "s3"
+        SigningBehavior: "always"
+        SigningProtocol: "sigv4"
+
+
+  CloudfrontDistribution:
+    Type: "AWS::CloudFront::Distribution"
+    Condition: CreateWeb
+    DependsOn: ServerlessApi
+    Properties:
+      DistributionConfig:
+        Comment: !Sub "Cloudfront distribution for serverless website - ${AWS::StackName}"
+        DefaultRootObject: "index.html"
+        Enabled: true
+        HttpVersion: http2
+        # List of origins that Cloudfront will connect to
+        Origins:
+          - Id: s3-website
+            DomainName: !GetAtt WebsiteS3Bucket.RegionalDomainName
+            OriginAccessControlId: !Ref CloudFrontOriginAccessControl
+            S3OriginConfig:
+              OriginAccessIdentity: ""
+          - Id: api-gateway
+            DomainName: !Sub "${ServerlessApi}.execute-api.${AWS::Region}.amazonaws.com"
+            CustomOriginConfig:
+              OriginProtocolPolicy: "https-only"
+              OriginSSLProtocols:
+                - "TLSv1.2"
+              HTTPSPort: 443
+            OriginPath: "/Prod"
+        # To connect the CDN to the origins you need to specify behaviours
+        DefaultCacheBehavior:
+          # Compress resources automatically ( gzip )
+          Compress: true
+          AllowedMethods:
+            - HEAD
+            - DELETE
+            - POST
+            - GET
+            - OPTIONS
+            - PUT
+            - PATCH
+          ForwardedValues:
+            QueryString: false
+          TargetOriginId: s3-website
+          ViewerProtocolPolicy: redirect-to-https
+        CacheBehaviors:
+          - PathPattern: /redirectmarketplacetoken
+            AllowedMethods:
+            - HEAD
+            - DELETE
+            - POST
+            - GET
+            - OPTIONS
+            - PUT
+            - PATCH
+            TargetOriginId: api-gateway
+            ViewerProtocolPolicy: redirect-to-https
+            ResponseHeadersPolicyId: 60669652-455b-4ae9-85a4-c4c02393f86c
+            CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad
+            OriginRequestPolicyId: b689b0a8-53d0-40ab-baf2-68738e2966ac
+          - PathPattern: /subscriber
+            AllowedMethods:
+            - HEAD
+            - DELETE
+            - POST
+            - GET
+            - OPTIONS
+            - PUT
+            - PATCH
+            TargetOriginId: api-gateway
+            ViewerProtocolPolicy: redirect-to-https
+            ResponseHeadersPolicyId: 60669652-455b-4ae9-85a4-c4c02393f86c
+            CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad
+            OriginRequestPolicyId: b689b0a8-53d0-40ab-baf2-68738e2966ac
+        Logging:
+          Bucket: !GetAtt WebsiteS3BucketLog.DomainName
+          IncludeCookies: false
+          Prefix: "access-logs"
+
+
 Outputs:
-  APIUrl:
-    Description: API gateway URL to replace baseUrl value in web/script.js
-    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
+  RedirectUrl:
+    Description: URL to replace baseUrl value in web/script.js and lambda RedirectUrl (if applicable).
+    Value: 
+      !If [
+        CreateWeb,
+        !Sub "https://${CloudfrontDistribution.DomainName}/",
+        !Sub "https://${ServerlessApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
+      ]
+
+  MarketplaceFulfillmentUrl:
+    Description: This is the marketplace fulfillment url.
+    Value:
+      !If [
+        CreateWeb,
+        !Sub "https://${CloudfrontDistribution.DomainName}/redirectmarketplacetoken",
+        !Sub "https://${ServerlessApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/redirectmarketplacetoken"
+      ]
+
+  CrossAccountRole:
+    Description: This is the cross account role ARN.
+    Value: 
+      !If [
+        CreateCrossAccount,
+        !GetAtt CrossAccountRoleForSaaSIntegration.Arn,
+        "N/A"
+      ]
 
   LandingPageUrl:
-    Description: URL to access your landing page and update SaaS URL field in your listing.
+    Description: URL to access your landing page.
     Value:
       !If [
         CreateWeb,
         !Sub "https://${CloudfrontDistribution.DomainName}/index.html",
-        "N/A",
+        "N/A"
       ]
