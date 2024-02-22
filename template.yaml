@@ -587,3 +587,13 @@ Outputs:
         !Sub "https://${CloudfrontDistribution.DomainName}/index.html",
         "N/A"
       ]
+
+  WebsiteS3Bucket:
+    Description: S3 bucket for hosting the static site. You can retrieve the files at https://github.com/aws-samples/aws-marketplace-serverless-saas-integration/tree/master/web.
+    Value: 
+      !If [
+        CreateWeb,
+        !Sub ""https://s3.console.aws.amazon.com/s3/buckets/${WebsiteS3Bucket}/"",
+        !Sub "N/A"
+      ]
+
