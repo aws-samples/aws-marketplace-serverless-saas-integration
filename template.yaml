@@ -552,24 +552,6 @@ Resources:
 
 
 Outputs:
-  RedirectUrl:
-    Description: URL to replace baseUrl value in web/script.js and lambda RedirectUrl (if applicable).
-    Value: 
-      !If [
-        CreateWeb,
-        !Sub "https://${CloudfrontDistribution.DomainName}/",
-        !Sub "https://${ServerlessApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
-      ]
-
-  MarketplaceFulfillmentUrl:
-    Description: This is the marketplace fulfillment url.
-    Value:
-      !If [
-        CreateWeb,
-        !Sub "https://${CloudfrontDistribution.DomainName}/redirectmarketplacetoken",
-        !Sub "https://${ServerlessApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/redirectmarketplacetoken"
-      ]
-
   CrossAccountRole:
     Description: This is the cross account role ARN.
     Value: 
@@ -578,16 +560,6 @@ Outputs:
         !GetAtt CrossAccountRoleForSaaSIntegration.Arn,
         "N/A"
       ]
-
-  LandingPageUrl:
-    Description: URL to access your landing page.
-    Value:
-      !If [
-        CreateWeb,
-        !Sub "https://${CloudfrontDistribution.DomainName}/index.html",
-        "N/A"
-      ]
-
   WebsiteS3Bucket:
     Description: S3 bucket for hosting the static site. You can retrieve the files at https://github.com/aws-samples/aws-marketplace-serverless-saas-integration/tree/master/web.
     Value: 
@@ -597,3 +569,19 @@ Outputs:
         !Sub "N/A"
       ]
 
+  LandingPagePreviewURL:
+    Description: URL to preview your landing page. This is NOT the Fulfillment URL for your product.
+    Value:
+      !If [
+        CreateWeb,
+        !Sub "https://${CloudfrontDistribution.DomainName}/index.html",
+        "N/A"
+      ]
+  MarketplaceFulfillmentURL:
+    Description: This is the Marketplace fulfillment URL.
+    Value:
+      !If [
+        CreateWeb,
+        !Sub "https://${CloudfrontDistribution.DomainName}/redirectmarketplacetoken",
+        !Sub "https://${ServerlessApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/redirectmarketplacetoken"
+      ]
