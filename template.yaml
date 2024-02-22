@@ -1,7 +1,6 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
-Description: >
-  AWS Marketplace Serverless SaaS Integration Application
+Description: "AWS Marketplace Serverless SaaS Integration Application"
 Globals:
   Function:
     Timeout: 15
@@ -38,6 +37,19 @@ Parameters:
       - contracts
       - subscriptions
 
+  SNSAccountID:
+    Type: String
+    Default: "287250355862"
+    Description: "This is the AWS account hosting the SNS Entitlement and Subscription topics for your product."
+    AllowedValues:
+      - "287250355862"
+
+  SNSRegion:
+      Type: String
+      Default: "us-east-1"
+      Description: "This is the AWS region of the SNS Entitlement and Subscription topics for your product."
+      AllowedValues: 
+        - us-east-1
   ProductCode:
     Type: String
     AllowedPattern: ".*"
@@ -250,8 +262,8 @@ Resources:
         MySQSEvent:
           Type: SNS
           Properties:
-            Topic:  {"Fn::Join" : ["", ["arn:aws:sns:us-east-1:287250355862:aws-mp-entitlement-notification-", !Ref ProductCode]]}
-            Region: us-east-1
+            Topic:  !Sub 'arn:aws:sns:${SNSRegion}:${SNSAccountID}:aws-mp-entitlement-notification-${ProductCode}'
+            Region: !Sub '${SNSRegion}'
             SqsSubscription:
               BatchSize: 1
               QueueArn: !GetAtt EntitlementSQSQueue.Arn
@@ -281,8 +293,8 @@ Resources:
           Type: SNS
           Properties:
             #Topic: !Ref SubscriptionSNSTopic
-            Topic: {"Fn::Join" : ["", ["arn:aws:sns:us-east-1:287250355862:aws-mp-subscription-notification-", !Ref ProductCode]]}
-            Region: us-east-1
+            Topic:  !Sub 'arn:aws:sns:${SNSRegion}:${SNSAccountID}:aws-mp-subscription-notification-${ProductCode}'
+            Region: !Sub '${SNSRegion}'
             SqsSubscription: true
 
   SupportSNSTopic:
