@@ -593,7 +593,7 @@ Outputs:
     Value: 
       !If [
         CreateWeb,
-        !Sub ""https://s3.console.aws.amazon.com/s3/buckets/${WebsiteS3Bucket}/"",
+        !Sub "https://s3.console.aws.amazon.com/s3/buckets/${WebsiteS3Bucket}/",
         !Sub "N/A"
       ]
 
