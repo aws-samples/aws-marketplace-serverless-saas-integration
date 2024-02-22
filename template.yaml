@@ -64,10 +64,10 @@ Parameters:
     Default: ""
 
   CreateCrossAccountRole:
-    Default: false
+    Default: False
     Description: "Do you intend to use cross account access with this integration core?"
     Type: String
-    AllowedValues: [true, false]
+    AllowedValues: [True, False]
   
   CrossAccountId:
     Default: ''
@@ -79,9 +79,9 @@ Parameters:
     Description: "Your Role Name (ex: OrganizationAccountAccessRole); This will need to be the same across all of the Member Accounts"
 
   CreateRegistrationWebPage:
-    Default: true
+    Default: True
     Type: String
-    AllowedValues: [true, false]
+    AllowedValues: [True, False]
 
 Conditions:
   CreateEntitlementLogic:
@@ -94,9 +94,9 @@ Conditions:
       - !Equals [!Ref TypeOfSaaSListing, contracts_with_subscription]
       - !Equals [!Ref TypeOfSaaSListing, subscriptions]
 
-  CreateWeb: !Equals [!Ref CreateRegistrationWebPage, true]
+  CreateWeb: !Equals [!Ref CreateRegistrationWebPage, True]
   Buyernotificationemail: !Not [!Equals [!Ref MarketplaceSellerEmail, ""]]
-  CreateCrossAccount: !Equals [!Ref CreateCrossAccountRole, true]
+  CreateCrossAccount: !Equals [!Ref CreateCrossAccountRole, True]
 
 
 Resources:
@@ -295,7 +295,7 @@ Resources:
             #Topic: !Ref SubscriptionSNSTopic
             Topic:  !Sub 'arn:aws:sns:${SNSRegion}:${SNSAccountID}:aws-mp-subscription-notification-${ProductCode}'
             Region: !Sub '${SNSRegion}'
-            SqsSubscription: true
+            SqsSubscription: True
 
   SupportSNSTopic:
     Type: AWS::SNS::Topic
@@ -353,14 +353,14 @@ Resources:
             Schedule: "rate(1 hour)"
             Name: !Join ["-", [MeteringSchedule, !Ref AWS::StackName]]
             Description: SaaS Metering
-            Enabled: TRUE
+            Enabled: True
 
   SQSMeteringRecords:
     Type: AWS::SQS::Queue
     Properties:
       QueueName: !Join ["-", [!Ref AWS::StackName, SQSMeteringRecords.fifo]]
-      ContentBasedDeduplication: true
-      FifoQueue: true
+      ContentBasedDeduplication: True
+      FifoQueue: True
       MessageRetentionPeriod: 3000
     Condition: CreateSubscriptionLogic
 
@@ -393,7 +393,7 @@ Resources:
 
   
           Bucket: !GetAtt WebsiteS3BucketLog.DomainName
-          IncludeCookies: false
+          IncludeCookies: False
           Prefix: "access-logs"
 
   WebsiteS3Bucket:
@@ -483,7 +483,7 @@ Resources:
       DistributionConfig:
         Comment: !Sub "Cloudfront distribution for serverless website - ${AWS::StackName}"
         DefaultRootObject: "index.html"
-        Enabled: true
+        Enabled: True
         HttpVersion: http2
         # List of origins that Cloudfront will connect to
         Origins:
@@ -503,7 +503,7 @@ Resources:
         # To connect the CDN to the origins you need to specify behaviours
         DefaultCacheBehavior:
           # Compress resources automatically ( gzip )
-          Compress: true
+          Compress: True
           AllowedMethods:
             - HEAD
             - DELETE
@@ -513,7 +513,7 @@ Resources:
             - PUT
             - PATCH
           ForwardedValues:
-            QueryString: false
+            QueryString: False
           TargetOriginId: s3-website
           ViewerProtocolPolicy: redirect-to-https
         CacheBehaviors:
@@ -547,7 +547,7 @@ Resources:
             OriginRequestPolicyId: b689b0a8-53d0-40ab-baf2-68738e2966ac
         Logging:
           Bucket: !GetAtt WebsiteS3BucketLog.DomainName
-          IncludeCookies: false
+          IncludeCookies: False
           Prefix: "access-logs"
 
 
