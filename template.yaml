@@ -98,9 +98,9 @@ Conditions:
       - !Equals [!Ref TypeOfSaaSListing, contracts_with_subscription]
       - !Equals [!Ref TypeOfSaaSListing, subscriptions]
 
-  CreateWeb: !Equals [!Ref CreateRegistrationWebPage, True]
+  CreateWeb: !Equals [!Ref CreateRegistrationWebPage, true]
   Buyernotificationemail: !Not [!Equals [!Ref MarketplaceSellerEmail, ""]]
-  CreateCrossAccount: !Equals [!Ref CreateCrossAccountRole, True]
+  CreateCrossAccount: !Equals [!Ref CreateCrossAccountRole, true]
 
 
 Resources:
@@ -299,7 +299,7 @@ Resources:
             #Topic: !Ref SubscriptionSNSTopic
             Topic:  !Sub 'arn:aws:sns:${SNSRegion}:${SNSAccountID}:aws-mp-subscription-notification-${ProductCode}'
             Region: !Sub '${SNSRegion}'
-            SqsSubscription: True
+            SqsSubscription: true
 
   SupportSNSTopic:
     Type: AWS::SNS::Topic
@@ -357,14 +357,14 @@ Resources:
             Schedule: "rate(1 hour)"
             Name: !Join ["-", [MeteringSchedule, !Ref AWS::StackName]]
             Description: SaaS Metering
-            Enabled: True
+            Enabled: true
 
   SQSMeteringRecords:
     Type: AWS::SQS::Queue
     Properties:
       QueueName: !Join ["-", [!Ref AWS::StackName, SQSMeteringRecords.fifo]]
-      ContentBasedDeduplication: True
-      FifoQueue: True
+      ContentBasedDeduplication: true
+      FifoQueue: true
       MessageRetentionPeriod: 3000
     Condition: CreateSubscriptionLogic
 
@@ -397,7 +397,7 @@ Resources:
 
   
           Bucket: !GetAtt WebsiteS3BucketLog.DomainName
-          IncludeCookies: False
+          IncludeCookies: false
           Prefix: "access-logs"
 
   WebsiteS3Bucket:
@@ -487,7 +487,7 @@ Resources:
       DistributionConfig:
         Comment: !Sub "Cloudfront distribution for serverless website - ${AWS::StackName}"
         DefaultRootObject: "index.html"
-        Enabled: True
+        Enabled: true
         HttpVersion: http2
         # List of origins that Cloudfront will connect to
         Origins:
@@ -507,7 +507,7 @@ Resources:
         # To connect the CDN to the origins you need to specify behaviours
         DefaultCacheBehavior:
           # Compress resources automatically ( gzip )
-          Compress: True
+          Compress: true
           AllowedMethods:
             - HEAD
             - DELETE
@@ -517,7 +517,7 @@ Resources:
             - PUT
             - PATCH
           ForwardedValues:
-            QueryString: False
+            QueryString: false
           TargetOriginId: s3-website
           ViewerProtocolPolicy: redirect-to-https
         CacheBehaviors:
@@ -551,7 +551,7 @@ Resources:
             OriginRequestPolicyId: b689b0a8-53d0-40ab-baf2-68738e2966ac
         Logging:
           Bucket: !GetAtt WebsiteS3BucketLog.DomainName
-          IncludeCookies: False
+          IncludeCookies: false
           Prefix: "access-logs"
 
 
