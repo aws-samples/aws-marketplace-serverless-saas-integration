@@ -1,7 +1,6 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
-Description: >
-  AWS Marketplace Serverless SaaS Integration Application
+Description: "AWS Marketplace Serverless SaaS Integration Application"
 Globals:
   Function:
     Timeout: 15
@@ -38,6 +37,19 @@ Parameters:
       - contracts
       - subscriptions
 
+  SNSAccountID:
+    Type: String
+    Default: "287250355862"
+    Description: "This is the AWS account hosting the SNS Entitlement and Subscription topics for your product."
+    AllowedValues:
+      - "287250355862"
+
+  SNSRegion:
+      Type: String
+      Default: "us-east-1"
+      Description: "This is the AWS region of the SNS Entitlement and Subscription topics for your product."
+      AllowedValues: 
+        - us-east-1
   ProductCode:
     Type: String
     AllowedPattern: ".*"
@@ -52,10 +64,12 @@ Parameters:
     Default: ""
 
   CreateCrossAccountRole:
-    Default: false
+    Default: "false"
     Description: "Do you intend to use cross account access with this integration core?"
     Type: String
-    AllowedValues: [true, false]
+    AllowedValues:
+      - "true"
+      - "false"
   
   CrossAccountId:
     Default: ''
@@ -67,9 +81,11 @@ Parameters:
     Description: "Your Role Name (ex: OrganizationAccountAccessRole); This will need to be the same across all of the Member Accounts"
 
   CreateRegistrationWebPage:
-    Default: true
+    Default: "true"
     Type: String
-    AllowedValues: [true, false]
+    AllowedValues:
+      - "true"
+      - "false"
 
 Conditions:
   CreateEntitlementLogic:
@@ -250,8 +266,8 @@ Resources:
         MySQSEvent:
           Type: SNS
           Properties:
-            Topic:  {"Fn::Join" : ["", ["arn:aws:sns:us-east-1:287250355862:aws-mp-entitlement-notification-", !Ref ProductCode]]}
-            Region: us-east-1
+            Topic:  !Sub 'arn:aws:sns:${SNSRegion}:${SNSAccountID}:aws-mp-entitlement-notification-${ProductCode}'
+            Region: !Sub '${SNSRegion}'
             SqsSubscription:
               BatchSize: 1
               QueueArn: !GetAtt EntitlementSQSQueue.Arn
@@ -281,8 +297,8 @@ Resources:
           Type: SNS
           Properties:
             #Topic: !Ref SubscriptionSNSTopic
-            Topic: {"Fn::Join" : ["", ["arn:aws:sns:us-east-1:287250355862:aws-mp-subscription-notification-", !Ref ProductCode]]}
-            Region: us-east-1
+            Topic:  !Sub 'arn:aws:sns:${SNSRegion}:${SNSAccountID}:aws-mp-subscription-notification-${ProductCode}'
+            Region: !Sub '${SNSRegion}'
             SqsSubscription: true
 
   SupportSNSTopic:
@@ -341,7 +357,7 @@ Resources:
             Schedule: "rate(1 hour)"
             Name: !Join ["-", [MeteringSchedule, !Ref AWS::StackName]]
             Description: SaaS Metering
-            Enabled: TRUE
+            Enabled: true
 
   SQSMeteringRecords:
     Type: AWS::SQS::Queue
@@ -540,24 +556,6 @@ Resources:
 
 
 Outputs:
-  RedirectUrl:
-    Description: URL to replace baseUrl value in web/script.js and lambda RedirectUrl (if applicable).
-    Value: 
-      !If [
-        CreateWeb,
-        !Sub "https://${CloudfrontDistribution.DomainName}/",
-        !Sub "https://${ServerlessApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
-      ]
-
-  MarketplaceFulfillmentUrl:
-    Description: This is the marketplace fulfillment url.
-    Value:
-      !If [
-        CreateWeb,
-        !Sub "https://${CloudfrontDistribution.DomainName}/redirectmarketplacetoken",
-        !Sub "https://${ServerlessApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/redirectmarketplacetoken"
-      ]
-
   CrossAccountRole:
     Description: This is the cross account role ARN.
     Value: 
@@ -566,12 +564,28 @@ Outputs:
         !GetAtt CrossAccountRoleForSaaSIntegration.Arn,
         "N/A"
       ]
+  WebsiteS3Bucket:
+    Description: S3 bucket for hosting the static site. You can retrieve the files at https://github.com/aws-samples/aws-marketplace-serverless-saas-integration/tree/master/web.
+    Value: 
+      !If [
+        CreateWeb,
+        !Sub "https://s3.console.aws.amazon.com/s3/buckets/${WebsiteS3Bucket}/",
+        !Sub "N/A"
+      ]
 
-  LandingPageUrl:
-    Description: URL to access your landing page.
+  LandingPagePreviewURL:
+    Description: URL to preview your landing page. This is NOT the Fulfillment URL for your product.
     Value:
       !If [
         CreateWeb,
         !Sub "https://${CloudfrontDistribution.DomainName}/index.html",
         "N/A"
+      ]
+  MarketplaceFulfillmentURL:
+    Description: This is the Marketplace fulfillment URL.
+    Value:
+      !If [
+        CreateWeb,
+        !Sub "https://${CloudfrontDistribution.DomainName}/redirectmarketplacetoken",
+        !Sub "https://${ServerlessApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/redirectmarketplacetoken"
       ]
