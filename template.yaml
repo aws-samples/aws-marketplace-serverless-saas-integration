@@ -67,7 +67,9 @@ Parameters:
     Default: False
     Description: "Do you intend to use cross account access with this integration core?"
     Type: String
-    AllowedValues: [True, False]
+    AllowedValues:
+      - True
+      - False
   
   CrossAccountId:
     Default: ''
@@ -81,7 +83,9 @@ Parameters:
   CreateRegistrationWebPage:
     Default: True
     Type: String
-    AllowedValues: [True, False]
+    AllowedValues:
+      - True
+      - False
 
 Conditions:
   CreateEntitlementLogic:
