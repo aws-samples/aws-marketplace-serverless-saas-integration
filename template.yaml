@@ -64,12 +64,12 @@ Parameters:
     Default: ""
 
   CreateCrossAccountRole:
-    Default: False
+    Default: "false"
     Description: "Do you intend to use cross account access with this integration core?"
     Type: String
     AllowedValues:
-      - True
-      - False
+      - "true"
+      - "false"
   
   CrossAccountId:
     Default: ''
@@ -81,11 +81,11 @@ Parameters:
     Description: "Your Role Name (ex: OrganizationAccountAccessRole); This will need to be the same across all of the Member Accounts"
 
   CreateRegistrationWebPage:
-    Default: True
+    Default: "true"
     Type: String
     AllowedValues:
-      - True
-      - False
+      - "true"
+      - "false"
 
 Conditions:
   CreateEntitlementLogic:
