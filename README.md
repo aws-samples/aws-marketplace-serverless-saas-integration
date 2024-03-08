@@ -4,7 +4,7 @@
 
 This project provides example of serverless integration for SaaS products listed on the AWS Marketplace. 
 
-If you are a new seller on AWS Marketplace, we advise you to check the following  resources: 
+If you are a new seller on AWS Marketplace, we advise you to check the following resources: 
 
 * [SaaS Product Requirements & Recommendations](https://docs.aws.amazon.com/marketplace/latest/userguide/saas-guidelines.html) : This document outlines the requirements that must be met before gaining approval to publish a SaaS product to the catalog.
 * [SaaS Listing Process & Integration Guide](https://awsmp-loadforms.s3.amazonaws.com/AWS+Marketplace+-+SaaS+Integration+Guide.pdf) : This document outlines what is required to integrate with Marketplace for each SaaS pricing model. You will find integration diagrams, codes examples, FAQs, and additional resources.
@@ -15,11 +15,12 @@ If you are a new seller on AWS Marketplace, we advise you to check the following
 
 # Project Structure
 
-The sample in this repository demonstrates how to use AWS SAM (Serverless application mode) to integrate your SaaS product with AWS Marketplace and how to perform:
+The sample in this repository demonstrates how to use AWS SAM (Serverless application model) to integrate your SaaS product with AWS Marketplace and how to perform:
 
 - [Register new customers](#register-new-customers)
 - [Grant and revoke access to your product](#grant-and-revoke-access-to-your-product)
 - [Metering for usage](#metering-for-usage)
+- [Deploying the sample application using Serverless Application Model Command Line Interface (SAM CLI)](#)
 
 
 ## Register new customers
@@ -37,10 +38,10 @@ You can choose to use your existing SaaS registration page, after collecting the
 
 ### Implementation
 
-In this sample we created CloudFront Distribution, which can be configured to use domain/CNAME by your choice. The POST request coming from AWS Marketplace is intercepted by the Edge `src/lambda-edge/edge-redirect.js`, which transforms the POST request to GET request, and passes the x-amzn-marketplace-token in the query string. 
-We have created static HTML page hosted on S3 which takes the users inputs defined in the html form and submits them to marketplace/customer endpoint.
+In this sample we created CloudFront Distribution, which can be configured to use domain/CNAME by your choice. The POST request coming from AWS Marketplace is intercepted by the Edge `src/redirect.js`, which transforms the POST request to a GET request, and passes the x-amzn-marketplace-token in the query string. 
+A static landing page hosted on S3 which takes the users inputs defined in the html form and submits them to the /subscriber API Gateway endpoint.  <<<confirm
 
-The handler for the marketplace/customer endpoint is defined in the `src/register-new-subscriber.js` file, where we call the `resolveCustomer` and validate the token. If the token is valid the customer record is created in the `AWSMarketplaceSubscribers` DynamoDB table and the new customer data are stored.
+The handler for the /subscriber endpoint is defined in the `src/register-new-subscriber.js` file. This lambda function calls the  `resolveCustomerAPI` and validates the token. If the token is valid, a customer record is created in the `AWSMarketplaceSubscribers` DynamoDB table and the data the customer submitted in the html form is stored.  <<< add links 
 
 ![](misc/Onbording-CF.png)
 
@@ -145,15 +146,54 @@ After the record is submitted to AWS Marketplace BatchMeterUsage API, it will be
 }
 ```
 
-## Deploy the sample application
+## Deploying the sample application using Serverless Application Model Command Line Interface (SAM CLI)
 
-The Serverless Application Model Command Line Interface (SAM CLI) is an extension of the AWS CLI that adds functionality for building and testing Lambda applications. It uses Docker to run your functions in an Amazon Linux environment that matches Lambda. It can also emulate your application's build environment and API.
+The Serverless Application Model Command Line Interface (SAM CLI) is an extension of the AWS CLI that adds functionality for building and testing Lambda applications. To learn more about SAM, visit the [AWS SAM developer guide](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html).
 
-To use the SAM CLI, you need the following tools.
+> [!NOTE]  
+> For simplicity, we use [AWS CloudShell]() to deploy the application since it has the necessary tools pre-installed. If you wish to run the deployment in an alternate shell, you'll need the following tools installed.
 
-* SAM CLI - [Install the SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html)
-* Node.js - [Install Node.js 10](https://nodejs.org/en/), including the NPM package management tool.
-* Docker - [Install Docker community edition](https://hub.docker.com/search/?type=edition&offering=community)
+> * Docker - [Install Docker community edition](https://hub.docker.com/search/?type=edition&offering=community)
+
+> * Node.js - [Install Node.js 10](https://nodejs.org/en/), including the NPM package management tool.
+
+> * AWS CLI - [Install the AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)
+
+> * SAM CLI - [Install the SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html)
+
+
+
+1. Using the **AWS account registered as your (AWS Marketplace Seller account)[]**, open [AWS CloudShell](). 
+
+1. Execute the following command to clone the repository and change to the appropriate directory.
+
+  `git clone <link to repo>`
+  `cd aws-marketplace-serverless-saas-integration`
+
+1. Execute the following SAM CLI command to build the application.
+
+  `sam build`
+
+1. Execute the following SAM CLI command to deploy the application using the sam guided experience.
+
+  `sam deploy --guide --IAM-`
+
+1. Provide the following parameters when prompted.
+
+Parameter name | Description
+------------ | -------------
+WebsiteS3BucketName | S3 bucket to store the HTML files; Mandatory if CreateRegistrationWebPage is set to true; will be created
+NewSubscribersTableName | Use customer name for the New Subscribers Table; Default value: AWSMarketplaceSubscribers
+AWSMarketplaceMeteringRecordsTableName | Use customer name for the Metering Records Table; Default value: AWSMarketplaceMeteringRecords
+TypeOfSaaSListing | allowed values: contracts_with_subscription, contracts, subscriptions; Default value: contracts_with_subscription
+ProductCode | Product code provided from AWS Marketplace
+EntitlementSNSTopic | SNS topic ARN provided from AWS Marketplace. Must exist.
+SubscriptionSNSTopic | SNS topic ARN provided from AWS Marketplace. Must exist.
+CreateRegistrationWebPage | true or false; Default value: true
+MarketplaceTechAdminEmail | Email to be notified on changes requiring action
+MarketplaceSellerEmail | Seller email address, verified in SES and in 'Production' mode
+
+
 * Email verification - [Verify an email address](https://docs.aws.amazon.com/ses/latest/DeveloperGuide/verify-email-addresses-procedure.html): This document gives step by step instructions to verify email address that will be used as your SELLERSESVERIFIEDEMAILADDRESS address later)
 
 To build and deploy your application, you must sign in to the AWS Management Console with IAM permissions for the resources that the templates deploy. For more information, see [AWS managed policies for job functions](https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_job-functions.html). Your organization may choose to use a custom policy with more restrictions. These are the AWS services that you need permissions to create as part of the deployment:
@@ -212,18 +252,7 @@ aws s3 cp ./web/ s3://<WEBSITE_BUCKET_NAME>/ --recursive
 ```
 ### List of parameters
 
-Parameter name | Description
------------- | -------------
-WebsiteS3BucketName | S3 bucket to store the HTML files; Mandatory if CreateRegistrationWebPage is set to true; will be created
-NewSubscribersTableName | Use customer name for the New Subscribers Table; Default value: AWSMarketplaceSubscribers
-AWSMarketplaceMeteringRecordsTableName | Use customer name for the Metering Records Table; Default value: AWSMarketplaceMeteringRecords
-TypeOfSaaSListing | allowed values: contracts_with_subscription, contracts, subscriptions; Default value: contracts_with_subscription
-ProductCode | Product code provided from AWS Marketplace
-EntitlementSNSTopic | SNS topic ARN provided from AWS Marketplace. Must exist.
-SubscriptionSNSTopic | SNS topic ARN provided from AWS Marketplace. Must exist.
-CreateRegistrationWebPage | true or false; Default value: true
-MarketplaceTechAdminEmail | Email to be notified on changes requiring action
-MarketplaceSellerEmail | Seller email address, verified in SES and in 'Production' mode
+
 
 
 ### Diagram of created resources
