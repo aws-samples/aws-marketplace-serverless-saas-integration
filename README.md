@@ -183,7 +183,7 @@ To build and deploy your application for the first time, complete the following 
 3. Change to the root directory of the repository
 
   ```bash
-  cd aws-marketplace-serverless-saas-integration.git
+  cd aws-marketplace-serverless-saas-integration
   ```
 
 4. Build the application using SAM. 
