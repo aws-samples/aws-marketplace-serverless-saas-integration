@@ -242,7 +242,7 @@ In the case of a *subscriptions* the resources market with purple circles will n
 The landing page is optional. Use the CreateRegistrationWebPage parameter.
 
 
-![](misc/AWS Marketplace SaaS Integration.drawio.png)
+![](misc/AWS-Marketplace-SaaS-Integration.drawio.png)
 
 
 ## Cleanup
