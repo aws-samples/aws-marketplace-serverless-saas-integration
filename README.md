@@ -176,27 +176,27 @@ To build and deploy your application for the first time, complete the following 
 
 1. Clone the **aws-marketplace-serverless-saas-integration repository** and change to the root of the repository.
 
-```bash
-git clone https://github.com/aws-samples/aws-marketplace-serverless-saas-integration.git
-```
+  ```bash
+  git clone https://github.com/aws-samples/aws-marketplace-serverless-saas-integration.git
+  ```
 
 1. Change to the root directory of the repository
 
-```bash
-cd aws-marketplace-serverless-saas-integration.git
-```
+  ```bash
+  cd aws-marketplace-serverless-saas-integration.git
+  ```
 
 1. Build the application using SAM. 
 
-```bash
-sam build
-```
+  ```bash
+  sam build
+  ```
 
 1. Deploy the application using the SAM guided experience.
 
-```bash
-sam deploy --guided --capabilities CAPABILITY_NAMED_IAM
-```
+  ```bash
+  sam deploy --guided --capabilities CAPABILITY_NAMED_IAM
+  ```
 
 1. Follow the SAM guided experience to configure the deployment. Reference the following table for solution parameters.
  
