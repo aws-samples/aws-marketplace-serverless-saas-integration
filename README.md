@@ -200,23 +200,23 @@ sam deploy --guided --capabilities CAPABILITY_NAMED_IAM
 
 1. Follow the SAM guided experience to configure the deployment. Reference the following table for solution parameters.
  
-Parameter name | Description
------------- | -------------
-Stack Name | Name of the resulting CloudFormation stack.
-AWS Region | Name of the region that the solution is being deployed in. Default value: us-east-1
-WebsiteS3BucketName | S3 bucket to store the HTML files; Mandatory if CreateRegistrationWebPage is set to true; will be created
-NewSubscribersTableName | Name for the New Subscribers Table; Default value: AWSMarketplaceSubscribers
-AWSMarketplaceMeteringRecordsTableName | Name for the Metering Records Table; Default value: AWSMarketplaceMeteringRecords
-TypeOfSaaSListing | allowed values: contracts_with_subscription, contracts, subscriptions; Default value: contracts_with_subscription
-ProductCode | Product code provided from AWS Marketplace
-MarketplaceTechAdminEmail | Email to be notified on changes requiring action
-MarketplaceSellerEmail | (Optional) Seller email address, verified in SES and in 'Production' mode. See [Verify an email address](https://docs.aws.amazon.com/ses/latest/DeveloperGuide/verify-email-addresses-procedure.html) for instruction to verify email addresses.
-SNSAccountID | AWS account ID hosting the Entitlements and Subscriptions SNS topics. Leave as default.
-SNSRegion | AWS region that the Entitlements and Subscriptions SNS topics are hosted in. Leave as default.
-CreateCrossAccountRole | Creates a cross-account role granting access to the NewSubscribersTableName and AWSMarketplaceMeteringRecordsTableName tables. Default value: false.
-CrossAccountId | (Optional) AWS account ID for the cross-account role.
-CrossAccountRoleName |  (Optional) Role name for the cross-account role.
-CreateRegistrationWebPage | Creates a registration page. Default value: true
+    Parameter name | Description
+    ------------ | -------------
+    Stack Name | Name of the resulting CloudFormation stack.
+    AWS Region | Name of the region that the solution is being deployed in. Default value: us-east-1
+    WebsiteS3BucketName | S3 bucket to store the HTML files; Mandatory if CreateRegistrationWebPage is set to true; will be created
+    NewSubscribersTableName | Name for the New Subscribers Table; Default value: AWSMarketplaceSubscribers
+    AWSMarketplaceMeteringRecordsTableName | Name for the Metering Records Table; Default value: AWSMarketplaceMeteringRecords
+    TypeOfSaaSListing | allowed values: contracts_with_subscription, contracts, subscriptions; Default value: contracts_with_subscription
+    ProductCode | Product code provided from AWS Marketplace
+    MarketplaceTechAdminEmail | Email to be notified on changes requiring action
+    MarketplaceSellerEmail | (Optional) Seller email address, verified in SES and in 'Production' mode. See [Verify an email address](https://docs.aws.amazon.com/ses/latest/DeveloperGuide/verify-email-addresses-procedure.html) for instruction to verify email addresses.
+    SNSAccountID | AWS account ID hosting the Entitlements and Subscriptions SNS topics. Leave as default.
+    SNSRegion | AWS region that the Entitlements and Subscriptions SNS topics are hosted in. Leave as default.
+    CreateCrossAccountRole | Creates a cross-account role granting access to the NewSubscribersTableName and AWSMarketplaceMeteringRecordsTableName tables. Default value: false.
+    CrossAccountId | (Optional) AWS account ID for the cross-account role.
+    CrossAccountRoleName |  (Optional) Role name for the cross-account role.
+    CreateRegistrationWebPage | Creates a registration page. Default value: true
 
 1. Wait for the stack to complete successfully.
 
