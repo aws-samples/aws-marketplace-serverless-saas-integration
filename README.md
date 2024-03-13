@@ -174,31 +174,31 @@ To build and deploy your application for the first time, complete the following 
 
 1. Using the AWS account registered as your [AWS Marketplace Seller account](https://docs.aws.amazon.com/marketplace/latest/userguide/seller-registration-process.html), open [AWS CloudShell](https://us-east-1.console.aws.amazon.com/cloudshell). 
 
-1. Clone the **aws-marketplace-serverless-saas-integration repository** and change to the root of the repository.
+2. Clone the **aws-marketplace-serverless-saas-integration repository** and change to the root of the repository.
 
   ```bash
   git clone https://github.com/aws-samples/aws-marketplace-serverless-saas-integration.git
   ```
 
-1. Change to the root directory of the repository
+3. Change to the root directory of the repository
 
   ```bash
   cd aws-marketplace-serverless-saas-integration.git
   ```
 
-1. Build the application using SAM. 
+4. Build the application using SAM. 
 
   ```bash
   sam build
   ```
 
-1. Deploy the application using the SAM guided experience.
+5. Deploy the application using the SAM guided experience.
 
   ```bash
   sam deploy --guided --capabilities CAPABILITY_NAMED_IAM
   ```
 
-1. Follow the SAM guided experience to configure the deployment. Reference the following table for solution parameters.
+6. Follow the SAM guided experience to configure the deployment. Reference the following table for solution parameters.
  
     Parameter name | Description
     ------------ | -------------
@@ -218,11 +218,11 @@ To build and deploy your application for the first time, complete the following 
     CrossAccountRoleName |  (Optional) Role name for the cross-account role.
     CreateRegistrationWebPage | Creates a registration page. Default value: true
 
-1. Wait for the stack to complete successfully.
+7. Wait for the stack to complete successfully.
 
-1. Check the email account for **MarketplaceTechAdminEmail** and approve the subscription to the SNS topic.
+8. Check the email account for **MarketplaceTechAdminEmail** and approve the subscription to the SNS topic.
 
-1. If a registration page was created, copy the web files into the WebsiteS3BucketName.
+9. If a registration page was created, copy the web files into the WebsiteS3BucketName.
 
 ```bash
 aws s3 cp ./web/ s3://<NAME_OF_THE_BUCKET_SELECTED_FOR_WebsiteS3BucketName>/ --recursive
