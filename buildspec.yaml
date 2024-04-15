@@ -26,10 +26,9 @@ phases:
       - echo Build started
       - sam build
       - |
-        sam deploy --stack-name saas-serverless-${CODEBUILD_BUILD_NUMBER} --capabilities CAPABILITY_IAM \
+        sam deploy --stack-name saas-serverless-${CODEBUILD_BUILD_NUMBER} --s3-bucket saas-artifact-1 --capabilities CAPABILITY_NAMED_IAM \
         --region us-east-1 \
         --parameter-overrides \
-
         ParameterKey=WebsiteS3BucketName,ParameterValue=${WebsiteS3BucketName}-${CODEBUILD_BUILD_NUMBER} \
         ParameterKey=NewSubscribersTableName,ParameterValue=${NewSubscribersTableName}-${CODEBUILD_BUILD_NUMBER} \
         ParameterKey=AWSMarketplaceMeteringRecordsTableName,ParameterValue=${AWSMarketplaceMeteringRecordsTableName}-${CODEBUILD_BUILD_NUMBER} \
