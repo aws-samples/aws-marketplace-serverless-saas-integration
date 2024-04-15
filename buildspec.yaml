@@ -10,13 +10,17 @@ phases:
       - npm install aws-cli-js
       - echo "${CODEBUILD_WEBHOOK_TRIGGER}"
       - echo "${AWSMarketplaceMeteringRecordsTableName}"
-      - echo "${EntitlementSNSTopic}"
       - echo "${MarketplaceTechAdminEmail}"
       - echo "${NewSubscribersTableName}"
       - echo "${ProductCode}"
-      - echo "${SubscriptionSNSTopic}"
       - echo "${TypeOfSaaSListing}"
       - echo "${WebsiteS3BucketName}"
+      - echo "${SNSAccountID}"
+      - echo "${SNSRegion}"
+      - echo "${CreateCrossAccountRole}"
+      - echo "${CrossAccountId}"
+      - echo "${CrossAccountRoleName}"
+      - echo "${CreateRegistrationWebPage}"
   build:
     commands:
       - echo Build started
@@ -26,14 +30,19 @@ phases:
         sam deploy --template-file packaged.yaml --stack-name saas-serverless-${CODEBUILD_BUILD_NUMBER} --capabilities CAPABILITY_IAM \
         --region us-east-1 \
         --parameter-overrides \
+
         ParameterKey=WebsiteS3BucketName,ParameterValue=${WebsiteS3BucketName}-${CODEBUILD_BUILD_NUMBER} \
-        ParameterKey=ProductCode,ParameterValue=${ProductCode} \
-        ParameterKey=EntitlementSNSTopic,ParameterValue=${EntitlementSNSTopic} \
-        ParameterKey=SubscriptionSNSTopic,ParameterValue=${SubscriptionSNSTopic} \
-        ParameterKey=AWSMarketplaceMeteringRecordsTableName,ParameterValue=${AWSMarketplaceMeteringRecordsTableName}-${CODEBUILD_BUILD_NUMBER} \
         ParameterKey=NewSubscribersTableName,ParameterValue=${NewSubscribersTableName}-${CODEBUILD_BUILD_NUMBER} \
+        ParameterKey=AWSMarketplaceMeteringRecordsTableName,ParameterValue=${AWSMarketplaceMeteringRecordsTableName}-${CODEBUILD_BUILD_NUMBER} \
+        ParameterKey=ProductCode,ParameterValue=${ProductCode} \
         ParameterKey=MarketplaceTechAdminEmail,ParameterValue=${MarketplaceTechAdminEmail} \
-        ParameterKey=MarketplaceSellerEmail,ParameterValue=${MarketplaceTechAdminEmail}
+        ParameterKey=MarketplaceSellerEmail,ParameterValue=${MarketplaceTechAdminEmail} \
+        ParameterKey=SNSAccountID,ParameterValue=${SNSAccountID} \
+        ParameterKey=SNSRegion,ParameterValue=${SNSRegion} \
+        ParameterKey=CreateCrossAccountRole,ParameterValue=${CreateCrossAccountRole} \
+        ParameterKey=CrossAccountId,ParameterValue=${CrossAccountId} \
+        ParameterKey=CrossAccountRoleName,ParameterValue=${CrossAccountRoleName}-${CODEBUILD_BUILD_NUMBER} \
+        ParameterKey=CreateRegistrationWebPage,ParameterValue=${CreateRegistrationWebPage}
         
         aws s3 cp ./web/ s3://${WebsiteS3BucketName}-${CODEBUILD_BUILD_NUMBER}/ --recursive
   post_build:
