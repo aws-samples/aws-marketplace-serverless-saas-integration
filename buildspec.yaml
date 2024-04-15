@@ -46,7 +46,8 @@ phases:
   post_build:
     commands:
       - echo Build completed
-      - LANDING_PAGE=$(aws cloudformation describe-stacks --stack-name saas-serverless-${CODEBUILD_BUILD_NUMBER} --query "Stacks[0].Outputs[1].OutputValue" --output text --region us-east-1)
+      - LANDING_PAGE=$(aws cloudformation describe-stacks --stack-name saas-serverless-${CODEBUILD_BUILD_NUMBER} --query "Stacks[0].Outputs[0].OutputValue" --output text --region us-east-1)
+      - echo $LANDING_PAGE
       - TEST_LANDING_PAGE=$(curl -I -s ${LANDING_PAGE} | head -n 1 | cut -d$' ' -f2)
       - echo $TEST_LANDING_PAGE
       - |
