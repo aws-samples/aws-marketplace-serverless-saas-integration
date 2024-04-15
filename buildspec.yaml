@@ -25,9 +25,8 @@ phases:
     commands:
       - echo Build started
       - sam build
-      - sam package --output-template-file packaged.yaml --s3-bucket saas-artifact-1 --region us-east-1
       - |
-        sam deploy --template-file packaged.yaml --stack-name saas-serverless-${CODEBUILD_BUILD_NUMBER} --capabilities CAPABILITY_IAM \
+        sam deploy --stack-name saas-serverless-${CODEBUILD_BUILD_NUMBER} --capabilities CAPABILITY_IAM \
         --region us-east-1 \
         --parameter-overrides \
 
