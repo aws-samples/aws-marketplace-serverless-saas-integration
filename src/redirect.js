@@ -1,5 +1,3 @@
-const { RedirectUrl: landingPageUrl } = process.env;
-
 exports.redirecthandler = async(event, context, callback) => {
   
   const redirectUrl = "/?" + event['body'];
