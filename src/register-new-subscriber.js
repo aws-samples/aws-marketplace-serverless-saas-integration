@@ -1,9 +1,9 @@
 const AWS = require('aws-sdk');
-const ses = new AWS.SES({ region: "us-east-1" });
-const marketplacemetering = new AWS.MarketplaceMetering({ apiVersion: '2016-01-14', region: 'us-east-1' });
-const dynamodb = new AWS.DynamoDB({ apiVersion: '2012-08-10', region: 'us-east-1' });
-const sqs = new AWS.SQS({ apiVersion: '2012-11-05', region: 'us-east-1' });
-const { NewSubscribersTableName: newSubscribersTableName, EntitlementQueueUrl: entitlementQueueUrl, MarketplaceSellerEmail: marketplaceSellerEmail } = process.env;
+const { NewSubscribersTableName: newSubscribersTableName, EntitlementQueueUrl: entitlementQueueUrl, MarketplaceSellerEmail: marketplaceSellerEmail, AWS_REGION:aws_region } = process.env;
+const ses = new AWS.SES({ region: aws_region});
+const marketplacemetering = new AWS.MarketplaceMetering({ apiVersion: '2016-01-14', region: aws_region });
+const dynamodb = new AWS.DynamoDB({ apiVersion: '2012-08-10', region: aws_region });
+const sqs = new AWS.SQS({ apiVersion: '2012-11-05', region: aws_region });
 
 const lambdaResponse = (statusCode, body) => ({
   statusCode,

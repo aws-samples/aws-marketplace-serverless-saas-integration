@@ -1,6 +1,5 @@
 const winston = require('winston');
 const AWS = require('aws-sdk');
-
 const SNS = new AWS.SNS({ apiVersion: '2010-03-31' });
 const { SupportSNSArn: TopicArn } = process.env;
 const logger = winston.createLogger({

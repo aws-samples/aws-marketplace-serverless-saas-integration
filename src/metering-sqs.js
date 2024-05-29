@@ -1,15 +1,13 @@
 const AWS = require('aws-sdk');
-
-const dynamodb = new AWS.DynamoDB({ apiVersion: '2012-08-10', region: 'us-east-1' });
+const { ProductCode: ProductCode, AWSMarketplaceMeteringRecordsTableName: AWSMarketplaceMeteringRecordsTableName , AWS_REGION: aws_region } = process.env;
+const dynamodb = new AWS.DynamoDB({ apiVersion: '2012-08-10', region: aws_region });
+// MarketplaceMetering is instantianize in us-east-1 as all SaaS product listing ARN is stored in us-east-1.
 const marketplacemetering = new AWS.MarketplaceMetering({ apiVersion: '2016-01-14', region: 'us-east-1' });
-const { ProductCode, AWSMarketplaceMeteringRecordsTableName } = process.env;
-
 
 exports.handler = async (event) => {
   await Promise.all(event.Records.map(async (record) => {
     const body = JSON.parse(record.body);
     console.log(`SQS message body: ${record.body}`);
-
 
     const timestmpNow = new Date();
 

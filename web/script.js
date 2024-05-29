@@ -1,4 +1,3 @@
-const baseUrl = 'https://API-ID.execute-api.us-east-1.amazonaws.com/Prod/'; // TODO: This needs to be replaced
 const form = document.getElementsByClassName('form-signin')[0];
 
 const showAlert = (cssClass, message) => {
@@ -28,7 +27,7 @@ const getUrlParameter = (name) => {
 const handleFormSubmit = (event) => {
   event.preventDefault();
 
-  const postUrl = `${baseUrl}subscriber`;
+  const postUrl = `/subscriber`;
   const regToken = getUrlParameter('x-amzn-marketplace-token');
 
   if (!regToken) {

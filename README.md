@@ -4,7 +4,7 @@
 
 This project provides example of serverless integration for SaaS products listed on the AWS Marketplace. 
 
-If you are a new seller on AWS Marketplace, we advise you to check the following  resources: 
+If you are a new seller on AWS Marketplace, we advise you to check the following resources: 
 
 * [SaaS Product Requirements & Recommendations](https://docs.aws.amazon.com/marketplace/latest/userguide/saas-guidelines.html) : This document outlines the requirements that must be met before gaining approval to publish a SaaS product to the catalog.
 * [SaaS Listing Process & Integration Guide](https://awsmp-loadforms.s3.amazonaws.com/AWS+Marketplace+-+SaaS+Integration+Guide.pdf) : This document outlines what is required to integrate with Marketplace for each SaaS pricing model. You will find integration diagrams, codes examples, FAQs, and additional resources.
@@ -15,11 +15,12 @@ If you are a new seller on AWS Marketplace, we advise you to check the following
 
 # Project Structure
 
-The sample in this repository demonstrates how to use AWS SAM (Serverless application mode) to integrate your SaaS product with AWS Marketplace and how to perform:
+The sample in this repository demonstrates how to use AWS SAM (Serverless application model) to integrate your SaaS product with AWS Marketplace and how to perform:
 
 - [Register new customers](#register-new-customers)
 - [Grant and revoke access to your product](#grant-and-revoke-access-to-your-product)
 - [Metering for usage](#metering-for-usage)
+- [Deploying the sample application using Serverless Application Model Command Line Interface (SAM CLI)](#)
 
 
 ## Register new customers
@@ -37,10 +38,10 @@ You can choose to use your existing SaaS registration page, after collecting the
 
 ### Implementation
 
-In this sample we created CloudFront Distribution, which can be configured to use domain/CNAME by your choice. The POST request coming from AWS Marketplace is intercepted by the Edge `src/lambda-edge/edge-redirect.js`, which transforms the POST request to GET request, and passes the x-amzn-marketplace-token in the query string. 
-We have created static HTML page hosted on S3 which takes the users inputs defined in the html form and submits them to marketplace/customer endpoint.
+In this sample we created CloudFront Distribution, which can be configured to use domain/CNAME by your choice. The POST request coming from AWS Marketplace is intercepted by the Edge `src/redirect.js`, which transforms the POST request to a GET request, and passes the x-amzn-marketplace-token in the query string. 
+A static landing page hosted on S3 which takes the users inputs defined in the html form and submits them to the /subscriber API Gateway endpoint.  <<<confirm
 
-The handler for the marketplace/customer endpoint is defined in the `src/register-new-subscriber.js` file, where we call the `resolveCustomer` and validate the token. If the token is valid the customer record is created in the `AWSMarketplaceSubscribers` DynamoDB table and the new customer data are stored.
+The handler for the /subscriber endpoint is defined in the `src/register-new-subscriber.js` file. This lambda function calls the  `resolveCustomerAPI` and validates the token. If the token is valid, a customer record is created in the `AWSMarketplaceSubscribers` DynamoDB table and the data the customer submitted in the html form is stored.  <<< add links 
 
 ![](misc/Onbording-CF.png)
 
@@ -145,16 +146,9 @@ After the record is submitted to AWS Marketplace BatchMeterUsage API, it will be
 }
 ```
 
-## Deploy the sample application
+## Deploying the sample application using the SAM CLI
 
-The Serverless Application Model Command Line Interface (SAM CLI) is an extension of the AWS CLI that adds functionality for building and testing Lambda applications. It uses Docker to run your functions in an Amazon Linux environment that matches Lambda. It can also emulate your application's build environment and API.
-
-To use the SAM CLI, you need the following tools.
-
-* SAM CLI - [Install the SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html)
-* Node.js - [Install Node.js 10](https://nodejs.org/en/), including the NPM package management tool.
-* Docker - [Install Docker community edition](https://hub.docker.com/search/?type=edition&offering=community)
-* Email verification - [Verify an email address](https://docs.aws.amazon.com/ses/latest/DeveloperGuide/verify-email-addresses-procedure.html): This document gives step by step instructions to verify email address that will be used as your SELLERSESVERIFIEDEMAILADDRESS address later)
+The Serverless Application Model Command Line Interface (SAM CLI) is an extension of the AWS CLI that adds functionality for building and testing Lambda applications. To learn more about SAM, visit the [AWS SAM developer guide](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html).
 
 To build and deploy your application, you must sign in to the AWS Management Console with IAM permissions for the resources that the templates deploy. For more information, see [AWS managed policies for job functions](https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_job-functions.html). Your organization may choose to use a custom policy with more restrictions. These are the AWS services that you need permissions to create as part of the deployment:
 
@@ -170,60 +164,69 @@ To build and deploy your application, you must sign in to the AWS Management Con
 * Amazon SNS topic
 * Amazon EventBridge
 
-To build and deploy your application for the first time, run the following in your shell:
+
+> [!NOTE]  
+For simplicity, we use [AWS CloudShell](https://docs.aws.amazon.com/cloudshell/latest/userguide/welcome.html) to deploy the application since it has the required tools pre-installed. If you wish to run the deployment in an alternate shell, you'll need to install [Docker community edition](https://hub.docker.com/search/?type=edition&offering=community), [Node.js 10 (including NPM)](https://nodejs.org/en/), [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html), and [SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html).
+
+
+To build and deploy your application for the first time, complete the following steps.
+
+
+1. Using the AWS account registered as your [AWS Marketplace Seller account](https://docs.aws.amazon.com/marketplace/latest/userguide/seller-registration-process.html), open [AWS CloudShell](https://us-east-1.console.aws.amazon.com/cloudshell). 
+
+2. Clone the **aws-marketplace-serverless-saas-integration repository** and change to the root of the repository.
+
+  ```bash
+  git clone https://github.com/aws-samples/aws-marketplace-serverless-saas-integration.git
+  ```
+
+3. Change to the root directory of the repository
+
+  ```bash
+  cd aws-marketplace-serverless-saas-integration
+  ```
+
+4. Build the application using SAM. 
+
+  ```bash
+  sam build
+  ```
+
+5. Deploy the application using the SAM guided experience.
+
+  ```bash
+  sam deploy --guided --capabilities CAPABILITY_NAMED_IAM
+  ```
+
+6. Follow the SAM guided experience to configure the deployment. Reference the following table for solution parameters.
+ 
+    Parameter name | Description
+    ------------ | -------------
+    Stack Name | Name of the resulting CloudFormation stack.
+    AWS Region | Name of the region that the solution is being deployed in. Default value: us-east-1
+    WebsiteS3BucketName | S3 bucket to store the HTML files; Mandatory if CreateRegistrationWebPage is set to true; will be created
+    NewSubscribersTableName | Name for the New Subscribers Table; Default value: AWSMarketplaceSubscribers
+    AWSMarketplaceMeteringRecordsTableName | Name for the Metering Records Table; Default value: AWSMarketplaceMeteringRecords
+    TypeOfSaaSListing | allowed values: contracts_with_subscription, contracts, subscriptions; Default value: contracts_with_subscription
+    ProductCode | Product code provided from AWS Marketplace
+    MarketplaceTechAdminEmail | Email to be notified on changes requiring action
+    MarketplaceSellerEmail | (Optional) Seller email address, verified in SES and in 'Production' mode. See [Verify an email address](https://docs.aws.amazon.com/ses/latest/DeveloperGuide/verify-email-addresses-procedure.html) for instruction to verify email addresses.
+    SNSAccountID | AWS account ID hosting the Entitlements and Subscriptions SNS topics. Leave as default.
+    SNSRegion | AWS region that the Entitlements and Subscriptions SNS topics are hosted in. Leave as default.
+    CreateCrossAccountRole | Creates a cross-account role granting access to the NewSubscribersTableName and AWSMarketplaceMeteringRecordsTableName tables. Default value: false.
+    CrossAccountId | (Optional) AWS account ID for the cross-account role.
+    CrossAccountRoleName |  (Optional) Role name for the cross-account role.
+    CreateRegistrationWebPage | Creates a registration page. Default value: true
+
+7. Wait for the stack to complete successfully.
+
+8. Check the email account for **MarketplaceTechAdminEmail** and approve the subscription to the SNS topic.
+
+9. If a registration page was created, copy the web files into the WebsiteS3BucketName.
 
 ```bash
-
-#Replace all `<PLACEHOLDER_VALUES>` with their `actual values` (e.g. `<PROJECT_NAME>` with `My Cool Project`).
-#Create non-public bucket for <DEPLOYMENT_ARTEFACT_S3_BUCKET> before running this script
-
-sam build
-sam package --output-template-file packaged.yaml --s3-bucket <DEPLOYMENT_ARTEFACT_S3_BUCKET>
-
-sam deploy --template-file packaged.yaml --stack-name <STACK_NAME> --capabilities CAPABILITY_IAM \
---region us-east-1 \
---parameter-overrides \
-ParameterKey=WebsiteS3BucketName,ParameterValue=<WEBSITE_BUCKET_NAME> \
-ParameterKey=ProductCode,ParameterValue=<MARKETPLACE_PRODUCT_CODE> \
-ParameterKey=EntitlementSNSTopic,ParameterValue=<MARKETPLACE_ENTITLEMENT_SNS_TOPIC> \
-ParameterKey=SubscriptionSNSTopic,ParameterValue=<MARKETPLACE_SUBSCRIPTION_SNS_TOPIC> \
-ParameterKey=MarketplaceTechAdminEmail,ParameterValue=<MARKETPLACE_TECH_ADMIN_EMAIL>
-
-#If you want to notify your buyer of successful purchase then you can use the following to deploy your application
-sam deploy --template-file packaged.yaml --stack-name <STACK_NAME> --capabilities CAPABILITY_IAM \
---region us-east-1 \
---parameter-overrides \
-ParameterKey=WebsiteS3BucketName,ParameterValue=<WEBSITE_BUCKET_NAME> \
-ParameterKey=ProductCode,ParameterValue=<MARKETPLACE_PRODUCT_CODE> \
-ParameterKey=EntitlementSNSTopic,ParameterValue=<MARKETPLACE_ENTITLEMENT_SNS_TOPIC> \
-ParameterKey=SubscriptionSNSTopic,ParameterValue=<MARKETPLACE_SUBSCRIPTION_SNS_TOPIC> \
-ParameterKey=MarketplaceTechAdminEmail,ParameterValue=<MARKETPLACE_TECH_ADMIN_EMAIL> \
-ParameterKey=MarketplaceSellerEmail,ParameterValue=<SELLERSESVERIFIEDEMAILADDRESS>
-
-#Check the account for <MARKETPLACE_TECH_ADMIN_EMAIL> and approve the subscription to SNS
-
-#Replace the baseUrl in web/script.js with the API Gateway endpoint URL 
-
-aws s3 cp ./web/ s3://<WEBSITE_BUCKET_NAME>/ --recursive
-
-#add a CNAME record to your DNS to route the url you put on your offering to the cloudformation endpoint
-
-#add the domain used for your marketplace URL to the CNAME on the cloudformation config
+aws s3 cp ./web/ s3://<NAME_OF_THE_BUCKET_SELECTED_FOR_WebsiteS3BucketName>/ --recursive
 ```
-### List of parameters
-
-Parameter name | Description
------------- | -------------
-WebsiteS3BucketName | S3 bucket to store the HTML files; Mandatory if CreateRegistrationWebPage is set to true; will be created
-NewSubscribersTableName | Use customer name for the New Subscribers Table; Default value: AWSMarketplaceSubscribers
-AWSMarketplaceMeteringRecordsTableName | Use customer name for the Metering Records Table; Default value: AWSMarketplaceMeteringRecords
-TypeOfSaaSListing | allowed values: contracts_with_subscription, contracts, subscriptions; Default value: contracts_with_subscription
-ProductCode | Product code provided from AWS Marketplace
-EntitlementSNSTopic | SNS topic ARN provided from AWS Marketplace. Must exist.
-SubscriptionSNSTopic | SNS topic ARN provided from AWS Marketplace. Must exist.
-CreateRegistrationWebPage | true or false; Default value: true
-MarketplaceTechAdminEmail | Email to be notified on changes requiring action
-MarketplaceSellerEmail | Seller email address, verified in SES and in 'Production' mode
 
 
 ### Diagram of created resources
@@ -239,7 +242,7 @@ In the case of a *subscriptions* the resources market with purple circles will n
 The landing page is optional. Use the CreateRegistrationWebPage parameter.
 
 
-![](misc/Serverless-MP.png)
+![](misc/AWS-Marketplace-SaaS-Integration.drawio.png)
 
 
 ## Cleanup
@@ -258,3 +261,19 @@ See [CONTRIBUTING](CONTRIBUTING.md#security-issue-notifications) for more inform
 ## License
 
 This library is licensed under the MIT-0 License. See the LICENSE file.
+
+
+## Post deployment steps
+
+## Registration page is true
+1. Update the MarketplaceFulfillmentUrl in your AWS Marketplace Management Portal with the value from the output key 'MarketplaceFulfillmentUrl'. The value would be in a the form of a AWS cloudfront based url.
+2. Replace the baseUrl value in the web/script.js file from the web template provided with the value from the output key 'RedirectUrl'. 
+3. Replace the RedirectUrl value in the lambda environment variable with the value from the output key 'RedirectUrl'. Navigate to the AWS Console, look for AWS Lambda service, filter to the lambda with name ....Redirect... . Select the lambda function, go to configuration tab and then select the environment variable. 
+4. Ensure the email address used is a verified identity/domain in Amazon Simple Email Service.
+5. Ensure your Amazon Simple Email Service account is a production account. 
+
+## Registration page is false
+1. Update the MarketplaceFulfillmentUrl in your AWS Marketplace Management Portal with the value from the output key 'MarketplaceFulfillmentUrl'. The value would be in the form of an AWS API gateway url.
+2. Replace the baseUrl value in the web/script.js file from the web template provided with the value from the output key 'RedirectUrl'.
+3. Ensure the email address used is a verified identity/domain in Amazon Simple Email Service.
+4. Ensure your Amazon Simple Email Service account is a production account.
