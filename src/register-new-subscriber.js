@@ -50,10 +50,11 @@ const setBuyerNotificationHandler = function (contactEmail) {
 
 exports.registerNewSubscriber = async (event) => {
   const {
+    // Accept form inputs from ../web/index.html
     regToken, companyName, contactPerson, contactPhone, contactEmail,
   } = JSON.parse(event.body);
 
-  // Validate the request
+  // Validate the request with form inputs from ../web/index.html
   if (regToken && companyName && contactPerson && contactPhone && contactEmail) {
     try {
       // Call resolveCustomer to validate the subscriber
@@ -70,6 +71,7 @@ exports.registerNewSubscriber = async (event) => {
 
       const datetime = new Date().getTime().toString();
 
+      // Write form inputs from ../web/index.html
       const dynamoDbParams = {
         TableName: newSubscribersTableName,
         Item: {
