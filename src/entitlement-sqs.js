@@ -25,7 +25,8 @@ exports.handler = async (event) => {
 
       console.log('entitlementsResponse', entitlementsResponse);
 
-      const isExpired = new Date(entitlementsResponse.Entitlements[0].ExpirationDate) < new Date();
+      const isExpired = entitlementsResponse.hasOwnProperty("Entitlements") === false || entitlementsResponse.Entitlements.length === 0 || 
+        new Date(entitlementsResponse.Entitlements[0].ExpirationDate) < new Date();
 
       const dynamoDbParams = {
         TableName: newSubscribersTableName,
