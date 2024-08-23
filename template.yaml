@@ -122,7 +122,19 @@ Resources:
      - AWSMarketplaceMeteringRecords 
      - AWSMarketplaceSubscribers
     Properties:
-      RoleName: !Join ["-", [!Ref "AWS::StackName", !Ref CrossAccountRoleName]]
+      RoleName:
+         !Join
+          - '-'
+          - - 'CrossAccountRoleName'
+            - !Select 
+              - 0
+              - !Split 
+                - "-"
+                - !Select
+                  - 2
+                  - !Split
+                    - "/"
+                    - !Ref AWS::StackId
       AssumeRolePolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -137,7 +149,19 @@ Resources:
                 'sts:ExternalId': !Ref CrossAccountRoleName
       Path: /
       Policies:
-        - PolicyName: !Join ["-", [!Ref "AWS::StackName", "CrossAccountPolicy"]]
+        - PolicyName:
+           !Join
+            - '-'
+            - - 'CrossAccountPolicy'
+              - !Select 
+                - 0
+                - !Split 
+                  - "-"
+                  - !Select
+                    - 2
+                    - !Split
+                      - "/"
+                      - !Ref AWS::StackId
           PolicyDocument:
             Version: 2012-10-17
             Statement:
@@ -355,14 +379,38 @@ Resources:
           Type: Schedule
           Properties:
             Schedule: "rate(1 hour)"
-            Name: !Join ["-", [MeteringSchedule, !Ref AWS::StackName]]
+            Name:
+             !Join
+              - '-'
+              - - 'MeteringSchedule'
+                - !Select 
+                  - 0
+                  - !Split 
+                    - "-"
+                    - !Select
+                      - 2
+                      - !Split
+                        - "/"
+                        - !Ref AWS::StackId
             Description: SaaS Metering
             Enabled: true
 
   SQSMeteringRecords:
     Type: AWS::SQS::Queue
     Properties:
-      QueueName: !Join ["-", [!Ref AWS::StackName, SQSMeteringRecords.fifo]]
+      QueueName:
+       !Join
+        - '-'
+        - - 'SQSMeteringRecords.fifo'
+          - !Select 
+            - 0
+            - !Split 
+              - "-"
+              - !Select
+                - 2
+                - !Split
+                  - "/"
+                  - !Ref AWS::StackId
       ContentBasedDeduplication: true
       FifoQueue: true
       MessageRetentionPeriod: 3000
