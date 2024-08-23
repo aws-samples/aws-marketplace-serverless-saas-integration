@@ -472,8 +472,32 @@ Resources:
     Type: "AWS::CloudFront::OriginAccessControl"
     Properties: 
       OriginAccessControlConfig: 
-        Description: !Sub "Origin Access Control for static website - ${AWS::StackName}"
-        Name: !Sub "OAC - ${AWS::StackName}"
+        Description:
+         !Join
+          - '-'
+          - - 'Origin Access Control for static website'
+            - !Select 
+              - 0
+              - !Split 
+                - "-"
+                - !Select
+                  - 2
+                  - !Split
+                    - "/"
+                    - !Ref AWS::StackId
+        Name:
+         !Join
+          - '-'
+          - - 'OAC'
+            - !Select 
+              - 0
+              - !Split 
+                - "-"
+                - !Select
+                  - 2
+                  - !Split
+                    - "/"
+                    - !Ref AWS::StackId
         OriginAccessControlOriginType: "s3"
         SigningBehavior: "always"
         SigningProtocol: "sigv4"
@@ -485,7 +509,19 @@ Resources:
     DependsOn: ServerlessApi
     Properties:
       DistributionConfig:
-        Comment: !Sub "Cloudfront distribution for serverless website - ${AWS::StackName}"
+        Comment:
+         !Join
+          - '-'
+          - - 'Cloudfront distribution for serverless website'
+            - !Select 
+              - 0
+              - !Split 
+                - "-"
+                - !Select
+                  - 2
+                  - !Split
+                    - "/"
+                    - !Ref AWS::StackId
         DefaultRootObject: "index.html"
         Enabled: true
         HttpVersion: http2
