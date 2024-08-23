@@ -401,8 +401,7 @@ Resources:
       QueueName:
        !Join
         - '-'
-        - - 'SQSMeteringRecords.fifo'
-          - !Select 
+        - - !Select 
             - 0
             - !Split 
               - "-"
@@ -411,6 +410,7 @@ Resources:
                 - !Split
                   - "/"
                   - !Ref AWS::StackId
+          - 'SQSMeteringRecords.fifo'
       ContentBasedDeduplication: true
       FifoQueue: true
       MessageRetentionPeriod: 3000
