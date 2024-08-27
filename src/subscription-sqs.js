@@ -3,7 +3,6 @@ const { SupportSNSArn: TopicArn, NewSubscribersTableName: newSubscribersTableNam
 const dynamodb = new AWS.DynamoDB({ apiVersion: '2012-08-10', region: aws_region });
 const SNS = new AWS.SNS({ apiVersion: '2010-03-31' });
 
-
 exports.SQSHandler = async (event) => {
   await Promise.all(event.Records.map(async (record) => {
     const { body } = record;
@@ -42,8 +41,8 @@ exports.SQSHandler = async (event) => {
     }
 
     let isFreeTrialTermPresent = false;
-    if (typeof message.isFreeTrialTermPresent === "string")  {
-     isFreeTrialTermPresent = message.isFreeTrialTermPresent.toLowerCase() === "true";
+    if (typeof message.isFreeTrialTermPresent === "string") {
+      isFreeTrialTermPresent = message.isFreeTrialTermPresent.toLowerCase() === "true";
     }
 
     const dynamoDbParams = {
@@ -51,12 +50,12 @@ exports.SQSHandler = async (event) => {
       Key: {
         customerIdentifier: { S: message['customer-identifier'] },
       },
-      UpdateExpression: 'set subscription_action = :ac, successfully_subscribed = :ss, subscription_expired = :se, is_free_trial_term_present = :ft',
+      UpdateExpression: 'SET subscription_action = :ac, successfully_subscribed = :ss, subscription_expired = :se, is_free_trial_term_present = :ft',
       ExpressionAttributeValues: {
         ':ac': { S: message['action'] },
         ':ss': { BOOL: successfullySubscribed },
         ':se': { BOOL: subscriptionExpired },
-        ':ft': { BOOL: isFreeTrialTermPresent}
+        ':ft': { BOOL: isFreeTrialTermPresent }
       },
       ReturnValues: 'UPDATED_NEW',
     };

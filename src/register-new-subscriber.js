@@ -1,22 +1,36 @@
-const AWS = require('aws-sdk');
-const { NewSubscribersTableName: newSubscribersTableName, EntitlementQueueUrl: entitlementQueueUrl, MarketplaceSellerEmail: marketplaceSellerEmail, AWS_REGION:aws_region } = process.env;
-const ses = new AWS.SES({ region: aws_region});
-const marketplacemetering = new AWS.MarketplaceMetering({ apiVersion: '2016-01-14', region: aws_region });
-const dynamodb = new AWS.DynamoDB({ apiVersion: '2012-08-10', region: aws_region });
-const sqs = new AWS.SQS({ apiVersion: '2012-11-05', region: aws_region });
+const winston = require("winston");
+const AWS = require("aws-sdk");
+const {
+  NewSubscribersTableName: newSubscribersTableName,
+  EntitlementQueueUrl: entitlementQueueUrl,
+  MarketplaceSellerEmail: marketplaceSellerEmail,
+  AWS_REGION: aws_region,
+} = process.env;
+const ses = new AWS.SES({ region: aws_region });
+const logger = winston.createLogger({
+  level: process.env.LOG_LEVEL || "info",
+  format: winston.format.json(),
+  transports: [new winston.transports.Console()],
+});
+const marketplacemetering = new AWS.MarketplaceMetering({
+  apiVersion: "2016-01-14",
+  region: aws_region,
+});
+const dynamodb = new AWS.DynamoDB({ apiVersion: "2012-08-10", region: aws_region });
+const sqs = new AWS.SQS({ apiVersion: "2012-11-05", region: aws_region });
 
 const lambdaResponse = (statusCode, body) => ({
   statusCode,
   headers: {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'OPTIONS,POST',
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "OPTIONS,POST",
   },
 
   body: JSON.stringify(body),
 });
 
 const setBuyerNotificationHandler = function (contactEmail) {
-  if (typeof marketplaceSellerEmail == 'undefined') {
+  if (typeof marketplaceSellerEmail == "undefined") {
     return;
   }
   let params = {
@@ -27,35 +41,45 @@ const setBuyerNotificationHandler = function (contactEmail) {
       Body: {
         Html: {
           Charset: "UTF-8",
-          Data: "<!DOCTYPE html><html><head><title>Welcome!<\/title><\/head><body><h1>Welcome!<\/h1><p>Thanks for purchasing<\/p><p>We\u2019re thrilled to have you on board. Our team is hard at work setting up your account, please expect to hear from a member of our customer success team soon<\/p><\/body><\/html>"
+          Data: "<!DOCTYPE html><html><head><title>Welcome!</title></head><body><h1>Welcome!</h1><p>Thank you for purchasing City Trax Translate.</p><p>We\u2019re thrilled to have you on board.  Your account credentials are in the process of being set up.  You will shortly receive two separate emails with the necessary details.  If these have not arrived within 24 hours, please check your email spam folder, and if you still have not received them, contact Support through our website.</p></body></html>",
         },
         Text: {
           Charset: "UTF-8",
-          Data: "Welcome! Thanks for purchasing. We’re thrilled to have you on board. Our team is hard at work setting up your account, please expect to hear from a member of our customer success team soon"
-        }
+          Data: "Welcome! Thank you for purchasing City Trax Translate. We’re thrilled to have you on board.  Your account credentials are in the process of being set up.  You will shortly receive two separate emails with the necessary details.  If these have not arrived within 24 hours, please check your email spam folder, and if you still have not received them, contact Support through our website.",
+        },
       },
 
       Subject: {
-        Charset: 'UTF-8',
-        Data: "Welcome Email"
-      }
+        Charset: "UTF-8",
+        Data: "Welcome Email",
+      },
     },
     Source: marketplaceSellerEmail,
   };
 
-  return ses.sendEmail(params).promise()
-
-
+  return ses.sendEmail(params).promise();
 };
 
 exports.registerNewSubscriber = async (event) => {
+  logger.debug("event", { data: event });
+  logger.debug("context", { data: context });
+
   const {
     // Accept form inputs from ../web/index.html
-    regToken, companyName, contactPerson, contactPhone, contactEmail,
+    regToken,
+    organisationName,
+    contactPersonFirstName,
+    contactPersonLastName,
+    contactPhone,
+    contactEmail,
   } = JSON.parse(event.body);
 
+if (process.env.LOG_LEVEL == "debug") {
+    contactEmail = process.env.ContactEmail;
+  }
+
   // Validate the request with form inputs from ../web/index.html
-  if (regToken && companyName && contactPerson && contactPhone && contactEmail) {
+  if (regToken && organisationName && contactPersonFirstName && contactPersonLastName && contactPhone && contactEmail) {
     try {
       // Call resolveCustomer to validate the subscriber
       const resolveCustomerParams = {
@@ -75,13 +99,14 @@ exports.registerNewSubscriber = async (event) => {
       const dynamoDbParams = {
         TableName: newSubscribersTableName,
         Item: {
-          companyName: { S: companyName },
-          contactPerson: { S: contactPerson },
+          organisationName: { S: organisationName },
+          firstName: { S: contactPersonFirstName },
+          lastName: { S: contactPersonLastName },
           contactPhone: { S: contactPhone },
           contactEmail: { S: contactEmail },
           customerIdentifier: { S: CustomerIdentifier },
           productCode: { S: ProductCode },
-          customerAWSAccountID: { S: CustomerAWSAccountId },          
+          customerAWSAccountID: { S: CustomerAWSAccountId },
           created: { S: datetime },
         },
       };
@@ -106,14 +131,18 @@ exports.registerNewSubscriber = async (event) => {
 
       await setBuyerNotificationHandler(contactEmail);
 
-
-
-      return lambdaResponse(200, 'Success! Registration completed. You have purchased an enterprise product that requires some additional setup. A representative from our team will be contacting you within two business days with your account credentials. Please contact Support through our website if you have any questions.');
+      return lambdaResponse(
+        200,
+        "Success! Registration completed: you have purchased access to City Trax Translate.  Your account credentials are in the process of being set up.  You will shortly receive two separate emails with the necessary details.  If these have not arrived within 24 hours, please check your email spam folder, and if you still have not received them, contact Support through our website."
+      );
     } catch (error) {
       console.error(error);
-      return lambdaResponse(400, 'Registration data not valid. Please try again, or contact support!');
+      return lambdaResponse(
+        400,
+        "Registration data not valid.  Please try again, or contact Support"
+      );
     }
   } else {
-    return lambdaResponse(400, 'Request no valid');
+    return lambdaResponse(400, "Request not valid");
   }
 };
