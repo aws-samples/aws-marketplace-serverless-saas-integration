@@ -757,7 +757,7 @@ Resources:
       ServiceToken: !GetAtt S3ContentCustomResource.Arn
       BucketName: !Ref WebsiteS3Bucket
       Key: style.css
-      ContentType: "text/javascript"
+      ContentType: "text/css"
       Body: |
         html,
         body {
