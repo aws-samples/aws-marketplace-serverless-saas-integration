@@ -846,7 +846,7 @@ Resources:
     Properties:
       Code: 
         ZipFile: |
-          const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
+          const { S3Client, PutObjectCommand, DeleteObjectCommand } = require("@aws-sdk/client-s3");
           const s3Client = new S3Client();
           exports.handler = async function(event, context) {
             console.log("REQUEST RECEIVED:\n" + JSON.stringify(event));
@@ -857,10 +857,11 @@ Resources:
             if (event.RequestType == "Delete") {
               console.log(`Deleting s3://${event.ResourceProperties.BucketName}/${event.ResourceProperties.Key}`);
               try {
-                await s3.deleteObject({
+                const deleteObjectCommand = new DeleteObjectCommand({
                   Bucket: event.ResourceProperties.BucketName,
                   Key: event.ResourceProperties.Key
-                }).promise();
+                });
+                await s3Client.send(deleteObjectCommand);
                 responseStatus = "SUCCESS";
                 console.log("Deleted");
               } catch (e) {
