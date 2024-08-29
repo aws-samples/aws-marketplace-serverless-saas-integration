@@ -222,12 +222,6 @@ To build and deploy your application for the first time, complete the following 
 
 8. Check the email account for **MarketplaceTechAdminEmail** and approve the subscription to the SNS topic.
 
-9. If a registration page was created, copy the web files into the WebsiteS3BucketName.
-
-```bash
-aws s3 cp ./web/ s3://<NAME_OF_THE_BUCKET_SELECTED_FOR_WebsiteS3BucketName>/ --recursive
-```
-
 
 ### Diagram of created resources
 

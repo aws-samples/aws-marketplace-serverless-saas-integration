@@ -41,8 +41,6 @@ phases:
         ParameterKey=CrossAccountId,ParameterValue=${CrossAccountId} \
         ParameterKey=CrossAccountRoleName,ParameterValue=${CrossAccountRoleName}-${CODEBUILD_BUILD_NUMBER} \
         ParameterKey=CreateRegistrationWebPage,ParameterValue=${CreateRegistrationWebPage}
-        
-        aws s3 cp ./web/ s3://${WebsiteS3BucketName}-${CODEBUILD_BUILD_NUMBER}/ --recursive
   post_build:
     commands:
       - echo Build completed

@@ -637,8 +637,380 @@ Resources:
           Bucket: !GetAtt WebsiteS3BucketLog.DomainName
           IncludeCookies: false
           Prefix: "access-logs"
+  
+  S3ContentHome:
+    Type: Custom::Lambda
+    Condition: CreateWeb
+    Properties:
+      ServiceToken: !GetAtt S3ContentCustomResource.Arn
+      BucketName: !Ref WebsiteS3Bucket
+      Key: index.html
+      ContentType: "text/html"
+      Body: |
+        <!doctype html>
+        <html lang="en">
+        <head>
+          <!-- Required meta tags -->
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+          <!-- Bootstrap CSS -->
+          <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+            integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+          <link rel="stylesheet" href="style.css">
+          <title>Registration page</title>
+        </head>
+        <body class="text-center">
+          <div class="container">
+            <div id="alert"></div>
+            <form class="form-signin" method="POST" enctype="multipart/form-data">
+              <img class="mb-4" src="logo.png" alt="" width="72" height="72">
+              <h1 class="h3 mb-3 font-weight-normal">Please enter your contact details</h1>
+              <label for="companyName" class="sr-only">Company name</label>
+              <input type="text" name="companyName" class="form-control" placeholder="Company name" required autofocus>
+              <label for="contactPerson" class="sr-only">Contact person</label>
+              <input type="text" name="contactPerson" class="form-control" placeholder="Contact person" required autofocus>
+              <label for="Contact phone" class="sr-only">Contact phone</label>
+              <input type="tel" name="contactPhone" class="form-control" placeholder="Contact phone" required autofocus>
+              <label for="contactEmail" class="sr-only">Email address</label>
+              <input type="email" name="contactEmail" class="form-control" placeholder="Email address" required autofocus>
+              <button class="btn btn-lg btn-primary btn-block" type="submit">Register</button>
+              <p class="mt-5 mb-3 text-muted">&copy; 2024</p>
+            </form>
+          </div>
+          <!-- Optional JavaScript -->
+          <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+          <script src="https://code.jquery.com/jquery-3.7.0.min.js"
+            integrity="sha384-NXgwF8Kv9SSAr+jemKKcbvQsz+teULH/a5UNJvZc6kP47hZgl62M1vGnw6gHQhb1"
+            crossorigin="anonymous"></script>
+          <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"
+            integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
+            crossorigin="anonymous"></script>
+          <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
+            integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
+            crossorigin="anonymous"></script>
+          <script src="/script.js"></script>
+        </body>
+        </html>
 
+  S3ContentScript:
+    Type: Custom::Lambda
+    Condition: CreateWeb
+    Properties:
+      ServiceToken: !GetAtt S3ContentCustomResource.Arn
+      BucketName: !Ref WebsiteS3Bucket
+      Key: script.js
+      ContentType: "text/javascript"
+      Body: |
+        const form = document.getElementsByClassName('form-signin')[0];
+        const showAlert = (cssClass, message) => {
+          const html = `
+            <div class="alert alert-${cssClass} alert-dismissible" role="alert">
+                <strong>${message}</strong>
+                <button class="close" type="button" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">×</span>
+                </button>
+            </div>`;
+          document.querySelector('#alert').innerHTML += html;
+        };
+        const formToJSON = (elements) => [].reduce.call(elements, (data, element) => {
+          data[element.name] = element.value;
+          return data;
+        }, {});
+        const getUrlParameter = (name) => {
+          name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
+          const regex = new RegExp(`[\\?&]${name}=([^&#]*)`);
+          const results = regex.exec(location.search);
+          return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+        };
+        const handleFormSubmit = (event) => {
+          event.preventDefault();
+          const postUrl = `/subscriber`;
+          const regToken = getUrlParameter('x-amzn-marketplace-token');
+          if (!regToken) {
+            showAlert('danger',
+              'Registration Token Missing. Please go to AWS Marketplace and follow the instructions to set up your account!');
+          } else {
+            const data = formToJSON(form.elements);
+            data.regToken = regToken;
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', postUrl, true);
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.send(JSON.stringify(data));
+            xhr.onreadystatechange = () => {
+              if (xhr.readyState == XMLHttpRequest.DONE) {
+                showAlert('primary', xhr.responseText);
+                console.log(JSON.stringify(xhr.responseText));
+              }
+            };
+          }
+        };
+        form.addEventListener('submit', handleFormSubmit);
+        const regToken = getUrlParameter('x-amzn-marketplace-token');
+        if (!regToken) {
+          showAlert('danger', 'Registration Token Missing. Please go to AWS Marketplace and follow the instructions to set up your account!');
+        }
 
+  S3ContentStyle:
+    Type: Custom::Lambda
+    Condition: CreateWeb
+    Properties:
+      ServiceToken: !GetAtt S3ContentCustomResource.Arn
+      BucketName: !Ref WebsiteS3Bucket
+      Key: style.css
+      ContentType: "text/css"
+      Body: |
+        html,
+        body {
+          height: 100%;
+        }
+        body {
+          display: -ms-flexbox;
+          display: flex;
+          -ms-flex-align: center;
+          align-items: center;
+          padding-top: 40px;
+          padding-bottom: 40px;
+          background-color: #f5f5f5;
+        }
+        .form-signin {
+          width: 100%;
+          max-width: 330px;
+          padding: 15px;
+          margin: auto;
+        }
+        .form-signin .checkbox {
+          font-weight: 400;
+        }
+        .form-signin .form-control {
+          position: relative;
+          box-sizing: border-box;
+          height: auto;
+          padding: 10px;
+          font-size: 16px;
+          margin-top:5px;
+        }
+        .form-signin .form-control:focus {
+          z-index: 2;
+        }
+        .form-signin input[type="email"] {
+          margin-bottom: -1px;
+          border-bottom-right-radius: 0;
+          border-bottom-left-radius: 0;
+        }
+        .form-signin input[type="password"] {
+          margin-bottom: 10px;
+          border-top-left-radius: 0;
+          border-top-right-radius: 0;
+        }
+        .bd-placeholder-img {
+          font-size: 1.125rem;
+          text-anchor: middle;
+          -webkit-user-select: none;
+          -moz-user-select: none;
+          -ms-user-select: none;
+          user-select: none;
+        }
+        @media (min-width: 768px) {
+          .bd-placeholder-img-lg {
+            font-size: 3.5rem;
+          }
+        }
+  
+  S3ContentLogo:
+    Type: Custom::Lambda
+    Condition: CreateWeb
+    Properties:
+      ServiceToken: !GetAtt S3ContentCustomResource.Arn
+      BucketName: !Ref WebsiteS3Bucket
+      Key: logo.png
+      ContentType: "image/png"
+      IsBase64Encoded: true
+      Body: iVBORw0KGgoAAAANSUhEUgAAANwAAADcCAYAAAAbWs+BAAAAAXNSR0IArs4c6QAAAAlwSFlzAAALEwAACxMBAJqcGAAABBdpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IlhNUCBDb3JlIDUuNC4wIj4KICAgPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4KICAgICAgPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIKICAgICAgICAgICAgeG1sbnM6eG1wTU09Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9tbS8iCiAgICAgICAgICAgIHhtbG5zOnN0UmVmPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvc1R5cGUvUmVzb3VyY2VSZWYjIgogICAgICAgICAgICB4bWxuczp4bXA9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC8iCiAgICAgICAgICAgIHhtbG5zOnRpZmY9Imh0dHA6Ly9ucy5hZG9iZS5jb20vdGlmZi8xLjAvIj4KICAgICAgICAgPHhtcE1NOkRlcml2ZWRGcm9tIHJkZjpwYXJzZVR5cGU9IlJlc291cmNlIj4KICAgICAgICAgICAgPHN0UmVmOmluc3RhbmNlSUQ+eG1wLmlpZDpGODZBRTg3QjBCQTcxMUU4QUJGQkQ5RkRDMTdDRjdEQjwvc3RSZWY6aW5zdGFuY2VJRD4KICAgICAgICAgICAgPHN0UmVmOmRvY3VtZW50SUQ+eG1wLmRpZDpGODZBRTg3QzBCQTcxMUU4QUJGQkQ5RkRDMTdDRjdEQjwvc3RSZWY6ZG9jdW1lbnRJRD4KICAgICAgICAgPC94bXBNTTpEZXJpdmVkRnJvbT4KICAgICAgICAgPHhtcE1NOkRvY3VtZW50SUQ+eG1wLmRpZDpGODZBRTg3RTBCQTcxMUU4QUJGQkQ5RkRDMTdDRjdEQjwveG1wTU06RG9jdW1lbnRJRD4KICAgICAgICAgPHhtcE1NOkluc3RhbmNlSUQ+eG1wLmlpZDpGODZBRTg3RDBC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
+  
+  S3ContentFavicon:
+    Type: Custom::Lambda
+    Condition: CreateWeb
+    Properties:
+      ServiceToken: !GetAtt S3ContentCustomResource.Arn
+      BucketName: !Ref WebsiteS3Bucket
+      Key: favicon.ico
+      ContentType: "image/x-icon"
+      IsBase64Encoded: true
+      Body: AAABAAEAEBAAAAEAIABoBAAAFgAAACgAAAAQAAAAIAAAAAEAIAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAArmYf/51RE/8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACuZh//rmYf/65mH/+dURP/nVET/51RE/8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACuZh//rmYf/65mH/+uZh//nVET/51RE/+dURP/nVET/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAArmYf/65mH/+uZh//rmYf/51RE/+dURP/nVET/51RE/8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAK5mH/+uZh//rmYf/65nH/+eUhP/nVET/51RE/+dURP/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACuZh//rmYf/7p9F/+6fRf/un0X/7p9F/+dUhP/nVET/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAALp9F/+6fRf/un0X/7p9F/+6fRf/un0X/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIXvu/yRf4/oAAAAAAAAAALp9F/+6fRf/AAAAAAAAAADJowD1uI0D/wAAAAAAAAAAAAAAABVQmwghe+7/IXvu/yF77v8kX+P/JF/j/yRf4/8AAAAAAAAAAMmjAP/JowD/yaMA/7iNA/+4jQP/uI0D/3hcAgghe+7/IXvu/yF77v8he+7/JF/j/yRf4/8kX+P/G0eqnJd6AJzJowD/yaMA/8mjAP+4jQP/uI0D/7iNA/+4jQP/IXvu/yF77v8he+7/IXvu/yRf4/8kX+P/JF/j/xtHqpyXegCcyaMA/8mjAP/JowD/uI0D/7iNA/+4jQP/uI0D/yF77v8he+7/IXvu/yWE8f8kX+P/JF/j/yRf4/8bR6qcl3oAnMmjAP/JowD/yaMA/8SeE/+4jQP/uI0D/7iNA/8he+7/LJX3/yyW9/8slvf/LJb3/yyW9/8kX+P/G0eqnJd6AJzJowD/2sE0/9rBNP/awTT/2sE0/9i+Mf+4jQP/AAAAACyW9/8slvf/LJb3/yyW9/8slvf/LJb3/wAAAAAAAAAA2sE0/9rBNP/awTT/2sE0/9rBNP/awTT/AAAAAAAAAAAAAAAAAAAAACyW9/8slvf5AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA2sE0/trBNP8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA/n8AAPgfAADwDwAA8A8AAPAPAADwDwAA+B8AAOZnAACBgQAAAAAAAAAAAAAAAAAAAAAAAIGBAADn5wAA//8AAA==
+
+  # Custom Lambda function that creates an object in specified S3 bucket and prefix
+  S3ContentCustomResource:
+    Type: AWS::Lambda::Function
+    Condition: CreateWeb
+    DependsOn: S3ContentCustomResourceLogGroup
+    Properties:
+      Code: 
+        ZipFile: |
+          const { S3Client, PutObjectCommand, DeleteObjectCommand } = require("@aws-sdk/client-s3");
+          const s3Client = new S3Client();
+          exports.handler = async function(event, context) {
+            console.log("REQUEST RECEIVED:\n" + JSON.stringify(event));
+            let responseStatus = "FAILED";
+            let responseData = {};
+            let physicalResourceId = event.ResourceProperties.Key;
+            // For Delete requests, delete object.
+            if (event.RequestType == "Delete") {
+              console.log(`Deleting s3://${event.ResourceProperties.BucketName}/${event.ResourceProperties.Key}`);
+              try {
+                const deleteObjectCommand = new DeleteObjectCommand({
+                  Bucket: event.ResourceProperties.BucketName,
+                  Key: event.ResourceProperties.Key
+                });
+                await s3Client.send(deleteObjectCommand);
+                responseStatus = "SUCCESS";
+                console.log("Deleted");
+              } catch (e) {
+                console.error(`Failed to delete object: ${e.message}`);
+              }
+            } else {
+              const body = typeof event.ResourceProperties.IsBase64Encoded == "string" && event.ResourceProperties.IsBase64Encoded.toLowerCase() == "true" ? Buffer.from(event.ResourceProperties.Body, 'base64') : event.ResourceProperties.Body;
+              console.log(`Saving s3://${event.ResourceProperties.BucketName}/${event.ResourceProperties.Key}`);
+              try {
+                const putObjectCommand = new PutObjectCommand({
+                  Body: body,
+                  Bucket: event.ResourceProperties.BucketName,
+                  Key: event.ResourceProperties.Key,
+                  ContentType: event.ResourceProperties.ContentType
+                });
+                await s3Client.send(putObjectCommand);
+                console.log("Saved");
+                responseData["BucketName"] = event.ResourceProperties.BucketName;
+                responseData["Key"] = event.ResourceProperties.Key;
+                responseData["ContentType"] = event.ResourceProperties.ContentType;
+                responseStatus = "SUCCESS";
+              } catch (e) {
+                console.log(`Could not save to S3: ${e.message}`);
+              }
+            }
+            return await sendResponse(event, context, responseStatus, responseData, physicalResourceId);
+          };
+          // Send response to the pre-signed S3 URL 
+          const sendResponse = async function(event, context, responseStatus, responseData, physicalResourceId) {
+            let responseBody = JSON.stringify({
+                Status: responseStatus,
+                Reason: "See the details in CloudWatch Log Stream: " + context.logStreamName,
+                PhysicalResourceId: physicalResourceId,
+                StackId: event.StackId,
+                RequestId: event.RequestId,
+                LogicalResourceId: event.LogicalResourceId,
+                Data: responseData
+            });
+            console.log("RESPONSE BODY:\n", responseBody);
+            await sendRequest(event.ResponseURL, {
+              method: "PUT",
+              body: responseBody
+            })
+          };
+          // Web request
+          const sendRequest = async function(url, opt) {
+            opt = opt ? opt : {};
+            const parsedUrl = require("url").parse(url);
+            let headers = opt.headers ? opt.headers : {};
+            headers["Content-length"] = opt.body ? opt.body.length : 0;
+            const options = {
+              hostname: parsedUrl.hostname,
+              port: opt.port ? opt.port : (parsedUrl.protocol == "https:" ? 443 : 80),
+              path: parsedUrl.path,
+              method: opt.method ? opt.method : "GET",
+              headers: headers
+            };
+            let response = await new Promise(function(res, err) {
+              let request = require(parsedUrl.protocol == "https:" ? "https" : "http").request(options, function(response) {
+                let responseText = [];
+                response.on("data", function(d) {
+                  responseText.push(d);
+                });
+                response.on("end", function() {
+                  response.responseText = responseText.join("");
+                  res(response);
+                });
+              });
+              request.on("error", function(error) {
+                console.error("sendRequest Error: " + error);
+                err(error);
+              });
+              request.write(opt.body ? opt.body : "");
+              request.end();
+            });
+            return response;
+          };
+      FunctionName: !Sub
+        - "S3ContentCustomResource-${id}"
+        - id: !Select 
+            - 0
+            - !Split 
+              - "-"
+              - !Select
+                - 2
+                - !Split
+                  - "/"
+                  - !Ref AWS::StackId
+      Handler: index.handler
+      Role: !GetAtt S3ContentCustomResourceRole.Arn
+      Runtime: nodejs20.x
+  # Role for custom Lambda function to log activity and put/delete objects in S3 bucket created in this template
+  S3ContentCustomResourceRole:
+    Type: AWS::IAM::Role
+    Condition: CreateWeb
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - "sts:AssumeRole"
+      Policies:
+        - PolicyName: LambdaExecute
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                Resource:
+                  - !Sub
+                      - "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/S3ContentCustomResource-${id}*"
+                      - id: !Select 
+                        - 0
+                        - !Split 
+                          - "-"
+                          - !Select
+                            - 2
+                            - !Split
+                              - "/"
+                              - !Ref AWS::StackId
+              - Effect: Allow
+                Action:
+                  - "s3:PutObject"
+                  - "s3:DeleteObject"
+                Resource: !Sub "${WebsiteS3Bucket.Arn}/*"
+  # Log group for Lambda function
+  S3ContentCustomResourceLogGroup:
+    Type: AWS::Logs::LogGroup
+    Condition: CreateWeb
+    Properties:
+      LogGroupName: !Sub
+        - "/aws/lambda/S3ContentCustomResource-${id}"
+        - id: !Select 
+            - 0
+            - !Split 
+              - "-"
+              - !Select
+                - 2
+                - !Split
+                  - "/"
+                  - !Ref AWS::StackId
+      RetentionInDays: 7
+  
 Outputs:
   CrossAccountRole:
     Description: This is the cross account role ARN.
