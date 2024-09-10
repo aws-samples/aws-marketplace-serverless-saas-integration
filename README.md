@@ -208,7 +208,7 @@ To build and deploy your application for the first time, complete the following 
     NewSubscribersTableName | Name for the New Subscribers Table; Default value: AWSMarketplaceSubscribers
     AWSMarketplaceMeteringRecordsTableName | Name for the Metering Records Table; Default value: AWSMarketplaceMeteringRecords
     TypeOfSaaSListing | allowed values: contracts_with_subscription, contracts, subscriptions; Default value: contracts_with_subscription
-    ProductCode | Product code provided from AWS Marketplace
+    ProductId | Product id provided from AWS Marketplace
     MarketplaceTechAdminEmail | Email to be notified on changes requiring action
     MarketplaceSellerEmail | (Optional) Seller email address, verified in SES and in 'Production' mode. See [Verify an email address](https://docs.aws.amazon.com/ses/latest/DeveloperGuide/verify-email-addresses-procedure.html) for instruction to verify email addresses.
     SNSAccountID | AWS account ID hosting the Entitlements and Subscriptions SNS topics. Leave as default.
