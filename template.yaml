@@ -88,6 +88,14 @@ Parameters:
       - "true"
       - "false"
 
+  UpdateFulfillmentURL:
+    Default: "false"
+    Type: String
+    Description: "WARNING: This will update your product's fulfillment URL automatically. Be careful if your product is already public"
+    AllowedValues:
+      - "true"
+      - "false"
+
 Conditions:
   CreateEntitlementLogic:
     Fn::Or:
@@ -102,7 +110,7 @@ Conditions:
   CreateWeb: !Equals [!Ref CreateRegistrationWebPage, true]
   Buyernotificationemail: !Not [!Equals [!Ref MarketplaceSellerEmail, ""]]
   CreateCrossAccount: !Equals [!Ref CreateCrossAccountRole, true]
-
+  UpdateFulfillment: !Equals [!Ref UpdateFulfillmentURL, true]
 
 Resources:
 
@@ -1078,14 +1086,25 @@ Resources:
               - 'sts:AssumeRole'
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
-        - arn:aws:iam::aws:policy/AWSMarketplaceSellerFullAccess
+      Policies:
+        - PolicyName: manage-products
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "aws-marketplace:StartChangeSet"
+                  - "aws-marketplace:DescribeEntity"
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:aws-marketplace:us-east-1:${AWS::AccountId}:AWSMarketplace/SaaSProduct/${ProductId}"
+                  - !Sub "arn:${AWS::Partition}:aws-marketplace:us-east-1:${AWS::AccountId}:AWSMarketplace/ChangeSet/*"
 
-  UpdateFulfillmentURL:
+  FulfillmentURL:
     Type: Custom::Lambda
+    Condition: UpdateFulfillment
     Properties:
       ServiceToken: !GetAtt UpdateFulfillmentURLCustomResource.Arn
       ProductId: !Ref ProductId
-      # FulfillmentUrl: 'https://cachicamo.org'
       FulfillmentUrl: !If [
                         CreateWeb,
                         !Sub "https://${CloudfrontDistribution.DomainName}/redirectmarketplacetoken",
@@ -1170,7 +1189,6 @@ Resources:
             }
           };
           
-          
 Outputs:
 
   CrossAccountRole:
@@ -1181,6 +1199,7 @@ Outputs:
         !GetAtt CrossAccountRoleForSaaSIntegration.Arn,
         "N/A"
       ]
+
   WebsiteS3Bucket:
     Description: S3 bucket for hosting the static site. You can retrieve the files at https://github.com/aws-samples/aws-marketplace-serverless-saas-integration/tree/master/web.
     Value: 
