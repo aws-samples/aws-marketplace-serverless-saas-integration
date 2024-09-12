@@ -50,7 +50,8 @@ Parameters:
       Description: "This is the AWS region of the SNS Entitlement and Subscription topics for your product."
       AllowedValues: 
         - us-east-1
-  ProductCode:
+
+  ProductId:
     Type: String
     AllowedPattern: ".*"
 
@@ -87,6 +88,14 @@ Parameters:
       - "true"
       - "false"
 
+  UpdateFulfillmentURL:
+    Default: "false"
+    Type: String
+    Description: "WARNING: This will update your product's fulfillment URL automatically. Be careful if your product is already public"
+    AllowedValues:
+      - "true"
+      - "false"
+
 Conditions:
   CreateEntitlementLogic:
     Fn::Or:
@@ -101,7 +110,7 @@ Conditions:
   CreateWeb: !Equals [!Ref CreateRegistrationWebPage, true]
   Buyernotificationemail: !Not [!Equals [!Ref MarketplaceSellerEmail, ""]]
   CreateCrossAccount: !Equals [!Ref CreateCrossAccountRole, true]
-
+  UpdateFulfillment: !Equals [!Ref UpdateFulfillmentURL, true]
 
 Resources:
 
@@ -290,7 +299,7 @@ Resources:
         MySQSEvent:
           Type: SNS
           Properties:
-            Topic:  !Sub 'arn:aws:sns:${SNSRegion}:${SNSAccountID}:aws-mp-entitlement-notification-${ProductCode}'
+            Topic:  !Sub 'arn:aws:sns:${SNSRegion}:${SNSAccountID}:aws-mp-entitlement-notification-${GetProductCode.ProductCode}'
             Region: !Sub '${SNSRegion}'
             SqsSubscription:
               BatchSize: 1
@@ -321,7 +330,7 @@ Resources:
           Type: SNS
           Properties:
             #Topic: !Ref SubscriptionSNSTopic
-            Topic:  !Sub 'arn:aws:sns:${SNSRegion}:${SNSAccountID}:aws-mp-subscription-notification-${ProductCode}'
+            Topic:  !Sub 'arn:aws:sns:${SNSRegion}:${SNSAccountID}:aws-mp-subscription-notification-${GetProductCode.ProductCode}'
             Region: !Sub '${SNSRegion}'
             SqsSubscription: true
 
@@ -425,7 +434,7 @@ Resources:
       Runtime: nodejs18.x
       Environment:
         Variables:
-          ProductCode: !Ref ProductCode
+          ProductCode: !GetAtt GetProductCode.ProductCode
           AWSMarketplaceMeteringRecordsTableName: !Ref AWSMarketplaceMeteringRecordsTableName
       Policies:
         - DynamoDBWritePolicy:
@@ -1011,7 +1020,177 @@ Resources:
                   - !Ref AWS::StackId
       RetentionInDays: 7
   
+  GetProductCode:
+    Type: Custom::Lambda
+    Properties:
+      ServiceToken: !GetAtt GetProductCodeCustomResource.Arn
+      ProductId: !Ref ProductId
+      
+  GetProductCodeCustomResource:
+    Type: AWS::Lambda::Function
+    Properties:
+      Role: !GetAtt CAPILambdasExecutionRole.Arn
+      Runtime: nodejs18.x
+      Handler: index.handler
+      Code: 
+        ZipFile: |
+          const { MarketplaceCatalogClient, DescribeEntityCommand } = require("@aws-sdk/client-marketplace-catalog");
+          const response = require('cfn-response');
+          exports.handler = async (event, context) => {
+          context.callbackWaitsForEmptyEventLoop = true;
+            console.log("REQUEST RECEIVED:\n" + JSON.stringify(event));
+            const client = new MarketplaceCatalogClient({ region: 'us-east-1' });
+            const productId = event.ResourceProperties.ProductId; // Assuming the product ID is passed as an event parameter
+
+            try {
+                if (event.RequestType === 'Create' || event.RequestType === 'Update') {
+                    // Fetch the product details from AWS Marketplace
+                    const command = new DescribeEntityCommand({
+                        Catalog: 'AWSMarketplace',
+                        EntityId: productId,
+                        EntityType: 'Product'
+                    });
+                    const resp = await client.send(command);
+
+                    // Extract the product code from the response
+                    const productCode = resp.DetailsDocument.Description.ProductCode;
+
+                    const responseData = {
+                        ProductCode: productCode
+                    };
+
+                    await response.send(event, context, 'SUCCESS', responseData);
+                } else if (event.RequestType === 'Delete') {
+                    // No action needed for delete
+                    await response.send(event, context, 'SUCCESS', {});
+                } else {
+                    await response.send(event, context, 'FAILED', { error: 'Invalid request type' });
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                await response.send(event, context, 'FAILED', { error: 'Failed to fetch product code' });
+            }
+          };
+
+  CAPILambdasExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: manage-products
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "aws-marketplace:StartChangeSet"
+                  - "aws-marketplace:DescribeEntity"
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:aws-marketplace:us-east-1:${AWS::AccountId}:AWSMarketplace/SaaSProduct/${ProductId}"
+                  - !Sub "arn:${AWS::Partition}:aws-marketplace:us-east-1:${AWS::AccountId}:AWSMarketplace/ChangeSet/*"
+
+  FulfillmentURL:
+    Type: Custom::Lambda
+    Condition: UpdateFulfillment
+    Properties:
+      ServiceToken: !GetAtt UpdateFulfillmentURLCustomResource.Arn
+      ProductId: !Ref ProductId
+      FulfillmentUrl: !If [
+                        CreateWeb,
+                        !Sub "https://${CloudfrontDistribution.DomainName}/redirectmarketplacetoken",
+                        !Sub "https://${ServerlessApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/redirectmarketplacetoken"
+                      ]
+
+  UpdateFulfillmentURLCustomResource:
+    Type: AWS::Lambda::Function
+    Properties:
+      Role: !GetAtt CAPILambdasExecutionRole.Arn
+      Runtime: nodejs18.x
+      Handler: index.handler
+      Code: 
+        ZipFile: |
+          const { MarketplaceCatalogClient, DescribeEntityCommand, StartChangeSetCommand } = require("@aws-sdk/client-marketplace-catalog");
+          const response = require('cfn-response');
+          exports.handler = async (event, context) => {
+            console.log("REQUEST RECEIVED:\n" + JSON.stringify(event));
+            const client = new MarketplaceCatalogClient({ region: 'us-east-1' });
+            const productId = event.ResourceProperties.ProductId;
+            const fulfillmentUrl = event.ResourceProperties.FulfillmentUrl;
+            try {
+              if (event.RequestType === 'Create' || event.RequestType === 'Update') {
+                    // Fetch the fulfillment url id to be able to update the fulfillment url
+                    let command = new DescribeEntityCommand({
+                        Catalog: 'AWSMarketplace',
+                        EntityId: productId,
+                        EntityType: 'Product'
+                    });
+                    let resp = await client.send(command);
+                    console.debug("DescribeEntityCommand:\n" + JSON.stringify(resp));
+                    
+                    
+                    const fulfillmentUrlID = resp.DetailsDocument.Versions[0].DeliveryOptions[0].Id
+                    console.debug("FullfilmentId:\n" + fulfillmentUrlID);
+                    
+                    const details = { 
+                      DeliveryOptions : [{
+                        Id: fulfillmentUrlID,
+                        Details: {
+                          SaaSUrlDeliveryOptionDetails: {
+                            FulfillmentUrl: fulfillmentUrl
+                          }
+                        }
+                      }]
+                    };
+                    console.debug("details:\n" + JSON.stringify(details));
+                    
+                    const startChangeSetInput = { 
+                      Catalog: 'AWSMarketplace',
+                      ChangeSet: [ 
+                        { 
+                          ChangeType: 'UpdateDeliveryOptions',
+                          Entity: {
+                            Identifier: productId,
+                            Type: 'SaaSProduct@1.0'
+                          },
+                          Details: JSON.stringify(details)
+                        }
+                      ]
+                    };
+                    console.debug("startChangeSetInput:\n" + JSON.stringify(startChangeSetInput));
+                    
+                    command = new StartChangeSetCommand(startChangeSetInput);
+                    resp = await client.send(command);
+                    console.debug("StartChangeSetResp: \n" + JSON.stringify(resp));
+
+                    const responseData = {
+                        StartChangeSetResp: JSON.stringify(resp)
+                    };
+
+                    await response.send(event, context, 'SUCCESS', responseData);
+                } else if (event.RequestType === 'Delete') {
+                    // No action needed for delete
+                    await response.send(event, context, 'SUCCESS', {});
+                } else {
+                    await response.send(event, context, 'FAILED', { error: 'Invalid request type' });
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                await response.send(event, context, 'FAILED', { error: 'Failed to update fulfillment url' });
+            }
+          };
+          
 Outputs:
+
   CrossAccountRole:
     Description: This is the cross account role ARN.
     Value: 
@@ -1020,6 +1199,7 @@ Outputs:
         !GetAtt CrossAccountRoleForSaaSIntegration.Arn,
         "N/A"
       ]
+
   WebsiteS3Bucket:
     Description: S3 bucket for hosting the static site. You can retrieve the files at https://github.com/aws-samples/aws-marketplace-serverless-saas-integration/tree/master/web.
     Value: 
@@ -1037,6 +1217,7 @@ Outputs:
         !Sub "https://${CloudfrontDistribution.DomainName}/index.html",
         "N/A"
       ]
+
   MarketplaceFulfillmentURL:
     Description: This is the Marketplace fulfillment URL.
     Value:
