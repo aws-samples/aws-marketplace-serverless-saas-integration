@@ -1,0 +1,25 @@
+{
+    "data": {
+        "Records": [
+            {
+                "attributes": {
+                    "AWSTraceHeader": "Root=1-66db3ebe-788af13405f586c124636c03;Parent=10baa4805332f817;Sampled=0;Lineage=1:6b00064c:0",
+                    "ApproximateFirstReceiveTimestamp": "1725644481013",
+                    "ApproximateReceiveCount": "1",
+                    "SenderId": "AROAXZDFRHUVD7HNS2TQZ:saas-marketplace-integrat-RegisterNewMarketplaceCu-Bwa32cQPyBn4",
+                    "SentTimestamp": "1725644481009"
+                },
+                "awsRegion": "eu-west-2",
+                "body": "{ \n              \"Type\": \"Notification\", \n              \"Message\" : {\n                  \"action\" : \"entitlement-updated\",\n                  \"customer-identifier\": \"Z5ofr8bGM6i\",\n                  \"product-code\" : \"c9z0oe0qbge757tw4e5ey0fc0\"\n                  } \n              }",
+                "eventSource": "aws:sqs",
+                "eventSourceARN": "arn:aws:sqs:eu-west-2:534936370474:saas-marketplace-integration-EntitlementSQSQueue-BOVO188TI7GI",
+                "md5OfBody": "586cd37f8ba9afdfa380a3e85fd7d613",
+                "messageAttributes": {},
+                "messageId": "8af06ca5-565a-47f3-8b0e-98cf54778781",
+                "receiptHandle": "AQEBOKYOSfyC7seERp+NhASXdb47RCFGYX+K5F5up4JHaCN6Cll3ttFzdIRBhr2bOR7a1/eP3Y88nza2mvwovcGmdv6lhj4tp04tC3Qr1hEG2Pj44GePNwkd0JsXiIe75WMrqXpk7U4fU2S6sBeH9LaP15r5gJ754V2bm0YS4Ex7OT/70TiONqyDxWAYazgJ+CUarlWaoui4g37ReCrJOjNRGq8VQE9FsxD3b8QJq0jEHMSEfn6BacNcIJSFzjU0TTrRqmZvIBgAgXhBL0hDTkGcmHBVa2vt9z9eksdwBUmQt3IZuF/8RqiKCC8Hgo1jGQbj6xnzA6L1jNxO1BstC3mAj9lK5RCMjZYx22NpS/jcpP1na/c/T/0x39iAav14OCB43Ri67kLEtSM+pfr1Lmj3vSFPq4g5Qvl/sSyVNA7IZ8Hge0IoQr9MknM2FYqxYwLTbQUsMfzULZGtHFOi7UU+nQ=="
+            }
+        ]
+    },
+    "level": "debug",
+    "message": "event"
+}

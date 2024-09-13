@@ -5,3 +5,5 @@ node_modules
 packaged.yaml
 deploy.sh
 *.toml
+debug-log*
+local-execution-log*

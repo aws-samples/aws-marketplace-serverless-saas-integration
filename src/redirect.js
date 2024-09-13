@@ -1,4 +1,4 @@
-exports.redirecthandler = async(event, context, callback) => {
+exports.redirecthandler = async(event) => {
   
   const redirectUrl = "/?" + event['body'];
   const response = {

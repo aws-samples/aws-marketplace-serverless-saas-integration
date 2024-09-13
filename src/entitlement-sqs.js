@@ -10,7 +10,7 @@ const logger = winston.createLogger({
   transports: [new winston.transports.Console()],
 });
 
-exports.handler = async (event) => {
+exports.handler = async (event, context) => {
   logger.debug("event", { data: event });
   logger.debug("context", { data: context });
   
@@ -32,10 +32,12 @@ exports.handler = async (event) => {
 
       const entitlementsResponse = await marketplaceEntitlementService.getEntitlements(entitlementParams).promise();
 
-      console.log('entitlementsResponse', entitlementsResponse);
+      logger.debug("Updated customer entitlement", { data: entitlementsResponse });
 
       const isExpired = entitlementsResponse.hasOwnProperty("Entitlements") === false || entitlementsResponse.Entitlements.length === 0 || 
         new Date(entitlementsResponse.Entitlements[0].ExpirationDate) < new Date();
+
+      isExpired && logger.debug("Customer subscription expired", { data: entitlementsResponse });
 
       const dynamoDbParams = {
         TableName: newSubscribersTableName,

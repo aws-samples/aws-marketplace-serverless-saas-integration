@@ -1,0 +1,14 @@
+{
+    "Parameters": {
+        "LOG_LEVEL": "debug"
+    },
+    "RegisterNewMarketplaceCustomer": {
+        "NewSubscribersTableName": "AWSMarketplaceSubscribers",
+        "EntitlementQueueUrl": "https://sqs.eu-west-2.amazonaws.com/534936370474/saas-marketplace-integration-EntitlementSQSQueue-BOVO188TI7GI",
+        "MarketplaceSellerEmail": "agm+seller@innoventlabs.co.uk"
+    },
+    "GrantOrRevokeAccess": {
+        "SupportSNSArn": "arn:aws:sns:eu-west-2:534936370474:saas-marketplace-integration-SupportSNSTopic-mHmUe163kcyZ",
+        "CognitoUserPoolId": "eu-west-2_yhYHwK5qJ"
+    }
+}

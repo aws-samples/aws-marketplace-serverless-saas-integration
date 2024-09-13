@@ -1,4 +1,4 @@
-const baseUrl = `https://1nqfs4j5s1.execute-api.us-east-1.amazonaws.com/Prod`;
+const baseUrl = `https://d2q8ybifm03vvd.cloudfront.net`;
 const form = document.getElementsByClassName("form-signin")[0];
 
 const showAlert = (cssClass, message) => {
@@ -39,7 +39,7 @@ const handleFormSubmit = (event) => {
   if (!regToken) {
     showAlert(
       "danger",
-      "Registration Token Missing. Please go to AWS Marketplace and follow the instructions to set up your account!"
+      "Registration Token Missing. Please go to AWS Marketplace and follow the instructions to set up your account."
     );
   } else {
     const data = formToJSON(form.elements);
@@ -66,14 +66,6 @@ const regToken = getUrlParameter("x-amzn-marketplace-token");
 if (!regToken) {
   showAlert(
     "danger",
-    "Registration Token Missing. Please go to AWS Marketplace and follow the instructions to set up your account!"
+    "Registration Token Missing. Please go to AWS Marketplace and follow the instructions to set up your account."
   );
 }
-
-/*
-Potential data to populate script with:
-- Product ID: prod-ab5ihozg5ylly
-- Product ARN: arn:aws:aws-marketplace:us-east-1:534936370474:AWSMarketplace/SaaSProduct/prod-ab5ihozg5ylly
-- Metering Service SNS Topic ARN (prob not required): arn:aws:sns:us-east-1:287250355862:aws-mp-subscription-notification-c9z0oe0qbge757tw4e5ey0fc0
-- Entitlement Service SNS topic ARN: arn:aws:sns:us-east-1:287250355862:aws-mp-entitlement-notification-c9z0oe0qbge757tw4e5ey0fc0
-*/

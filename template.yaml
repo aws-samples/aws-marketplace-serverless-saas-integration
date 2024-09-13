@@ -12,7 +12,6 @@ Globals:
       AllowCredentials: "'*'"
 
 Parameters:
-
   WebsiteS3BucketName:
     Type: String
     #AllowedPattern: "(?!(^xn--|.+-s3alias$))^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$"
@@ -45,11 +44,11 @@ Parameters:
       - "287250355862"
 
   SNSRegion:
-      Type: String
-      Default: "us-east-1"
-      Description: "This is the AWS region of the SNS Entitlement and Subscription topics for your product."
-      AllowedValues: 
-        - us-east-1
+    Type: String
+    Default: "us-east-1"
+    Description: "This is the AWS region of the SNS Entitlement and Subscription topics for your product."
+    AllowedValues:
+      - us-east-1
   ProductCode:
     Type: String
     AllowedPattern: ".*"
@@ -63,6 +62,22 @@ Parameters:
     AllowedPattern: ".*"
     Default: ""
 
+  CognitoUserPoolId:
+    Type: String
+    AllowedPattern: ".*"
+    Default: "*"
+
+  SaasAccountId:
+    Default: ""
+    Description: "Enter the AWS account id where City Trax software is deployed"
+    Type: String
+
+  TenantAdminRoleName:
+    Type: String
+    Description: "The name of the role that Tenant Administrators assume in the City Trax software account"
+    # AllowedPattern: '[\w+=,.@-]+'
+    Default: "*"
+
   CreateCrossAccountRole:
     Default: "false"
     Description: "Do you intend to use cross account access with this integration core?"
@@ -70,15 +85,15 @@ Parameters:
     AllowedValues:
       - "true"
       - "false"
-  
+
   CrossAccountId:
-    Default: ''
+    Default: ""
     Description: "Enter the cross AWS account id"
     Type: String
 
-  CrossAccountRoleName: 
+  CrossAccountRoleName:
     Type: String
-    Description: "Your Role Name (ex: OrganizationAccountAccessRole); This will need to be the same across all of the Member Accounts"
+    Description: "Your Role Name (e.g. OrganizationAccountAccessRole) - this will need to be the same across all of the Member Accounts"
 
   CreateRegistrationWebPage:
     Default: "true"
@@ -102,9 +117,7 @@ Conditions:
   Buyernotificationemail: !Not [!Equals [!Ref MarketplaceSellerEmail, ""]]
   CreateCrossAccount: !Equals [!Ref CreateCrossAccountRole, true]
 
-
 Resources:
-
   ServerlessApi:
     Type: AWS::Serverless::Api
     Properties:
@@ -118,9 +131,9 @@ Resources:
   CrossAccountRoleForSaaSIntegration:
     Type: AWS::IAM::Role
     Condition: CreateCrossAccount
-    DependsOn: 
-     - AWSMarketplaceMeteringRecords 
-     - AWSMarketplaceSubscribers
+    DependsOn:
+      - AWSMarketplaceSubscribers
+      - AWSMarketplaceMeteringRecords
     Properties:
       RoleName: !Join ["-", [!Ref "AWS::StackName", !Ref CrossAccountRoleName]]
       AssumeRolePolicyDocument:
@@ -129,12 +142,12 @@ Resources:
           - Effect: Allow
             Principal:
               AWS:
-                - !Join [":", ["arn:aws:iam:", !Ref CrossAccountId , "root"]]
+                - !Join [":", ["arn:aws:iam:", !Ref CrossAccountId, "root"]]
             Action:
-              - 'sts:AssumeRole'
+              - "sts:AssumeRole"
             Condition:
               StringEquals:
-                'sts:ExternalId': !Ref CrossAccountRoleName
+                "sts:ExternalId": !Ref CrossAccountRoleName
       Path: /
       Policies:
         - PolicyName: !Join ["-", [!Ref "AWS::StackName", "CrossAccountPolicy"]]
@@ -143,13 +156,13 @@ Resources:
             Statement:
               - Effect: Allow
                 Action:
-                  - 'dynamodb:PutItem'
-                  - 'dynamodb:DeleteItem'
-                  - 'dynamodb:UpdateItem'
+                  - "dynamodb:PutItem"
+                  - "dynamodb:DeleteItem"
+                  - "dynamodb:UpdateItem"
                 Resource:
                   - !GetAtt AWSMarketplaceMeteringRecords.Arn
                   - !GetAtt AWSMarketplaceSubscribers.Arn
-                  
+
   AWSMarketplaceMeteringRecords:
     Type: AWS::DynamoDB::Table
     Condition: CreateSubscriptionLogic
@@ -190,7 +203,7 @@ Resources:
       TableName: !Ref NewSubscribersTableName
       StreamSpecification:
         StreamViewType: NEW_AND_OLD_IMAGES
-  
+
   RegisterNewMarketplaceCustomer:
     Type: AWS::Serverless::Function
     Properties:
@@ -201,9 +214,18 @@ Resources:
         Variables:
           NewSubscribersTableName: !Ref NewSubscribersTableName
           EntitlementQueueUrl:
-            !If [CreateEntitlementLogic, !Ref EntitlementSQSQueue, !Ref AWS::NoValue]
+            !If [
+              CreateEntitlementLogic,
+              !Ref EntitlementSQSQueue,
+              !Ref AWS::NoValue,
+            ]
           MarketplaceSellerEmail:
-            !If [Buyernotificationemail, !Ref MarketplaceSellerEmail, !Ref AWS::NoValue]
+            !If [
+              Buyernotificationemail,
+              !Ref MarketplaceSellerEmail,
+              !Ref AWS::NoValue,
+            ]
+          LOG_LEVEL: "info"
       Policies:
         - DynamoDBWritePolicy:
             TableName: !Ref NewSubscribersTableName
@@ -251,6 +273,7 @@ Resources:
       Environment:
         Variables:
           NewSubscribersTableName: !Ref NewSubscribersTableName
+          LOG_LEVEL: "info"
       Policies:
         - DynamoDBWritePolicy:
             TableName: !Ref NewSubscribersTableName
@@ -266,8 +289,8 @@ Resources:
         MySQSEvent:
           Type: SNS
           Properties:
-            Topic:  !Sub 'arn:aws:sns:${SNSRegion}:${SNSAccountID}:aws-mp-entitlement-notification-${ProductCode}'
-            Region: !Sub '${SNSRegion}'
+            Topic: !Sub "arn:aws:sns:${SNSRegion}:${SNSAccountID}:aws-mp-entitlement-notification-${ProductCode}"
+            Region: !Sub "${SNSRegion}"
             SqsSubscription:
               BatchSize: 1
               QueueArn: !GetAtt EntitlementSQSQueue.Arn
@@ -283,6 +306,7 @@ Resources:
         Variables:
           NewSubscribersTableName: !Ref NewSubscribersTableName
           SupportSNSArn: !Ref SupportSNSTopic
+          LOG_LEVEL: "info"
       Policies:
         - DynamoDBWritePolicy:
             TableName: !Ref NewSubscribersTableName
@@ -297,8 +321,8 @@ Resources:
           Type: SNS
           Properties:
             #Topic: !Ref SubscriptionSNSTopic
-            Topic:  !Sub 'arn:aws:sns:${SNSRegion}:${SNSAccountID}:aws-mp-subscription-notification-${ProductCode}'
-            Region: !Sub '${SNSRegion}'
+            Topic: !Sub "arn:aws:sns:${SNSRegion}:${SNSAccountID}:aws-mp-subscription-notification-${ProductCode}"
+            Region: !Sub "${SNSRegion}"
             SqsSubscription: true
 
   SupportSNSTopic:
@@ -318,14 +342,41 @@ Resources:
         Variables:
           SupportSNSArn: !Ref SupportSNSTopic
           LOG_LEVEL: "info"
+          SaasAccountId: !Ref SaasAccountId
+          CognitoUserPoolId: !Ref CognitoUserPoolId
+          TenantAdminRoleName: !Ref TenantAdminRoleName
       Policies:
-        - AWSLambdaDynamoDBExecutionRole
+        # - AssumeTenantAdminsRole:
+        - Statement:
+            - Sid: AssumeTenantAdminsRole
+              Effect: Allow
+              Action:
+                - sts:AssumeRole
+              Resource: !Join
+                - ""
+                - - "arn:aws:iam::"
+                  - !Ref SaasAccountId
+                  - ":role/"
+                  - !Ref TenantAdminRoleName
         - Statement:
             - Sid: SNSPublish
               Effect: Allow
               Action:
                 - sns:Publish
               Resource: !Ref SupportSNSTopic
+        # - Statement:
+        #     - Sid: CognitoUserAdmin
+        #       Effect: Allow
+        #       Action:
+        #         - cognito-idp:ListUsers
+        #         - cognito-idp:AdminCreateUser
+        #         - cognito-idp:AdminDeleteUser
+        #         - cognito-idp:AdminAddUserToGroup
+        #         - cognito-idp:AdminRemoveUserFromGroup
+        #         - cognito-idp:AdminUpdateUserAttributes
+        #         - cognito-idp:AdminDisableUser
+        #         - cognito-idp:AdminEnableUser
+        #       Resource: !Sub 'arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${CognitoUserPoolId}'
       Events:
         Stream:
           Type: DynamoDB
@@ -333,6 +384,9 @@ Resources:
             Stream: !GetAtt AWSMarketplaceSubscribers.StreamArn
             BatchSize: 1
             StartingPosition: TRIM_HORIZON
+      EventInvokeConfig:
+        MaximumEventAgeInSeconds: 3600
+        MaximumRetryAttempts: 1
 
   Hourly:
     Type: AWS::Serverless::Function
@@ -345,6 +399,7 @@ Resources:
         Variables:
           SQSMeteringRecordsUrl: !Ref SQSMeteringRecords
           AWSMarketplaceMeteringRecordsTableName: !Ref AWSMarketplaceMeteringRecordsTableName
+          LOG_LEVEL: "info"
       Policies:
         - DynamoDBReadPolicy:
             TableName: !Ref AWSMarketplaceMeteringRecordsTableName
@@ -379,6 +434,7 @@ Resources:
         Variables:
           ProductCode: !Ref ProductCode
           AWSMarketplaceMeteringRecordsTableName: !Ref AWSMarketplaceMeteringRecordsTableName
+          LOG_LEVEL: "info"
       Policies:
         - DynamoDBWritePolicy:
             TableName: !Ref AWSMarketplaceMeteringRecordsTableName
@@ -395,7 +451,6 @@ Resources:
             Queue: !GetAtt SQSMeteringRecords.Arn
             BatchSize: 1
 
-  
           Bucket: !GetAtt WebsiteS3BucketLog.DomainName
           IncludeCookies: false
           Prefix: "access-logs"
@@ -437,10 +492,9 @@ Resources:
             Principal:
               Service: "cloudfront.amazonaws.com"
             Condition:
-              StringEquals: 
-                "AWS:SourceArn" : 
+              StringEquals:
+                "AWS:SourceArn":
                   - !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/${CloudfrontDistribution}"
-                
 
   LambdaRedirectPostRequests:
     Type: AWS::Serverless::Function
@@ -465,19 +519,18 @@ Resources:
           Type: Api
           Properties:
             Path: /redirectmarketplacetoken
-            Method: post  
+            Method: post
             RestApiId: !Ref ServerlessApi
 
   CloudFrontOriginAccessControl:
     Type: "AWS::CloudFront::OriginAccessControl"
-    Properties: 
-      OriginAccessControlConfig: 
+    Properties:
+      OriginAccessControlConfig:
         Description: !Sub "Origin Access Control for static website - ${AWS::StackName}"
         Name: !Sub "OAC - ${AWS::StackName}"
         OriginAccessControlOriginType: "s3"
         SigningBehavior: "always"
         SigningProtocol: "sigv4"
-
 
   CloudfrontDistribution:
     Type: "AWS::CloudFront::Distribution"
@@ -489,6 +542,7 @@ Resources:
         DefaultRootObject: "index.html"
         Enabled: true
         HttpVersion: http2
+        PriceClass: PriceClass_200
         # List of origins that Cloudfront will connect to
         Origins:
           - Id: s3-website
@@ -523,13 +577,13 @@ Resources:
         CacheBehaviors:
           - PathPattern: /redirectmarketplacetoken
             AllowedMethods:
-            - HEAD
-            - DELETE
-            - POST
-            - GET
-            - OPTIONS
-            - PUT
-            - PATCH
+              - HEAD
+              - DELETE
+              - POST
+              - GET
+              - OPTIONS
+              - PUT
+              - PATCH
             TargetOriginId: api-gateway
             ViewerProtocolPolicy: redirect-to-https
             ResponseHeadersPolicyId: 60669652-455b-4ae9-85a4-c4c02393f86c
@@ -537,13 +591,13 @@ Resources:
             OriginRequestPolicyId: b689b0a8-53d0-40ab-baf2-68738e2966ac
           - PathPattern: /subscriber
             AllowedMethods:
-            - HEAD
-            - DELETE
-            - POST
-            - GET
-            - OPTIONS
-            - PUT
-            - PATCH
+              - HEAD
+              - DELETE
+              - POST
+              - GET
+              - OPTIONS
+              - PUT
+              - PATCH
             TargetOriginId: api-gateway
             ViewerProtocolPolicy: redirect-to-https
             ResponseHeadersPolicyId: 60669652-455b-4ae9-85a4-c4c02393f86c
@@ -554,23 +608,22 @@ Resources:
           IncludeCookies: false
           Prefix: "access-logs"
 
-
 Outputs:
   CrossAccountRole:
     Description: This is the cross account role ARN.
-    Value: 
+    Value:
       !If [
         CreateCrossAccount,
         !GetAtt CrossAccountRoleForSaaSIntegration.Arn,
-        "N/A"
+        "N/A",
       ]
   WebsiteS3Bucket:
     Description: S3 bucket for hosting the static site. You can retrieve the files at https://github.com/aws-samples/aws-marketplace-serverless-saas-integration/tree/master/web.
-    Value: 
+    Value:
       !If [
         CreateWeb,
         !Sub "https://s3.console.aws.amazon.com/s3/buckets/${WebsiteS3Bucket}/",
-        !Sub "N/A"
+        !Sub "N/A",
       ]
 
   LandingPagePreviewURL:
@@ -579,7 +632,7 @@ Outputs:
       !If [
         CreateWeb,
         !Sub "https://${CloudfrontDistribution.DomainName}/index.html",
-        "N/A"
+        "N/A",
       ]
   MarketplaceFulfillmentURL:
     Description: This is the Marketplace fulfillment URL.
@@ -587,5 +640,5 @@ Outputs:
       !If [
         CreateWeb,
         !Sub "https://${CloudfrontDistribution.DomainName}/redirectmarketplacetoken",
-        !Sub "https://${ServerlessApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/redirectmarketplacetoken"
+        !Sub "https://${ServerlessApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/redirectmarketplacetoken",
       ]

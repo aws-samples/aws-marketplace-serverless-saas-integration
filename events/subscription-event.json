@@ -1,0 +1,90 @@
+{
+    "Records": [
+      {
+        "awsRegion": "eu-west-2",
+        "dynamodb": {
+          "ApproximateCreationDateTime": 1724943042,
+          "Keys": {
+            "customerIdentifier": {
+              "S": "Z5ofr8bGM6i"
+            }
+          },
+          "NewImage": {
+            "contactEmail": {
+              "S": "m.johnston@innoventlabs.co.uk"
+            },
+            "contactPhone": {
+              "S": "+441308369784"
+            },
+            "created": {
+              "S": "1724943039531"
+            },
+            "customerAWSAccountID": {
+              "S": "534936370474"
+            },
+            "customerIdentifier": {
+              "S": "Z5ofr8bGM6i"
+            },
+            "entitlement": {
+              "S": "{\"Entitlements\":[{\"ProductCode\":\"c9z0oe0qbge757tw4e5ey0fc0\",\"Dimension\":\"T1\",\"CustomerIdentifier\":\"Z5ofr8bGM6i\",\"Value\":{\"IntegerValue\":1},\"ExpirationDate\":\"2024-09-27T20:08:53.979Z\"}]}"
+            },
+            "firstName": {
+              "S": "Mary"
+            },
+            "lastName": {
+              "S": "Johnston"
+            },
+            "organisationName": {
+              "S": "Coverton District Council"
+            },
+            "productCode": {
+              "S": "c9z0oe0qbge757tw4e5ey0fc0"
+            },
+            "subscription_expired": {
+              "BOOL": false
+            },
+            "successfully_subscribed": {
+              "BOOL": true
+            }
+          },
+          "OldImage": {
+            "contactEmail": {
+              "S": "m.johnston@innoventlabs.co.uk"
+            },
+            "contactPhone": {
+              "S": "+441308369784"
+            },
+            "created": {
+              "S": "1724943039531"
+            },
+            "customerAWSAccountID": {
+              "S": "534936370474"
+            },
+            "customerIdentifier": {
+              "S": "Z5ofr8bGM6i"
+            },
+            "firstName": {
+              "S": "Mary"
+            },
+            "lastName": {
+              "S": "Johnston"
+            },
+            "organisationName": {
+              "S": "Coverton District Council"
+            },
+            "productCode": {
+              "S": "c9z0oe0qbge757tw4e5ey0fc0"
+            }
+          },
+          "SequenceNumber": "200000000024628534298",
+          "SizeBytes": 776,
+          "StreamViewType": "NEW_AND_OLD_IMAGES"
+        },
+        "eventID": "84fc08d8cfe5c851c9b9be0035758bf5",
+        "eventName": "MODIFY",
+        "eventSource": "aws:dynamodb",
+        "eventSourceARN": "arn:aws:dynamodb:eu-west-2:534936370474:table/AWSMarketplaceSubscribers/stream/2024-08-29T11:34:19.622",
+        "eventVersion": "1.1"
+      }
+    ]
+  }

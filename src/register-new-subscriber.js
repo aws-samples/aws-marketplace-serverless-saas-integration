@@ -31,6 +31,7 @@ const lambdaResponse = (statusCode, body) => ({
 
 const setBuyerNotificationHandler = function (contactEmail) {
   if (typeof marketplaceSellerEmail == "undefined") {
+    logger.info("Marketplace configuration error", {data: "No Marketplace Seller Email definedNo Marketplace Seller Email defined"});
     return;
   }
   let params = {
@@ -60,7 +61,7 @@ const setBuyerNotificationHandler = function (contactEmail) {
   return ses.sendEmail(params).promise();
 };
 
-exports.registerNewSubscriber = async (event) => {
+exports.registerNewSubscriber = async (event, context) => {
   logger.debug("event", { data: event });
   logger.debug("context", { data: context });
 
@@ -74,14 +75,11 @@ exports.registerNewSubscriber = async (event) => {
     contactEmail,
   } = JSON.parse(event.body);
 
-if (process.env.LOG_LEVEL == "debug") {
-    contactEmail = process.env.ContactEmail;
-  }
-
   // Validate the request with form inputs from ../web/index.html
   if (regToken && organisationName && contactPersonFirstName && contactPersonLastName && contactPhone && contactEmail) {
     try {
       // Call resolveCustomer to validate the subscriber
+      logger.debug("Resolving customer");
       const resolveCustomerParams = {
         RegistrationToken: regToken,
       };
@@ -92,6 +90,7 @@ if (process.env.LOG_LEVEL == "debug") {
 
       // Store new subscriber data in dynamoDb
       const { CustomerIdentifier, ProductCode, CustomerAWSAccountId } = resolveCustomerResponse;
+      logger.debug("Details of new customer", { data: resolveCustomerResponse });
 
       const datetime = new Date().getTime().toString();
 
@@ -110,7 +109,7 @@ if (process.env.LOG_LEVEL == "debug") {
           created: { S: datetime },
         },
       };
-
+      logger.debug("Being written to DDB", { data: dynamoDbParams });
       await dynamodb.putItem(dynamoDbParams).promise();
 
       // Only for SaaS Contracts, check entitlement
@@ -136,10 +135,10 @@ if (process.env.LOG_LEVEL == "debug") {
         "Success! Registration completed: you have purchased access to City Trax Translate.  Your account credentials are in the process of being set up.  You will shortly receive two separate emails with the necessary details.  If these have not arrived within 24 hours, please check your email spam folder, and if you still have not received them, contact Support through our website."
       );
     } catch (error) {
-      console.error(error);
+      console.error(`\n\nError attempting to register new subscriber:\n${error}\n`);
       return lambdaResponse(
         400,
-        "Registration data not valid.  Please try again, or contact Support"
+        `Registration not succesful - ${error}.  Please try again, or contact City Trax Support.`
       );
     }
   } else {

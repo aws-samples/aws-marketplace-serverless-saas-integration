@@ -12,7 +12,6 @@ If you are a new seller on AWS Marketplace, we advise you to check the following
 * [SaaS Pricing Video](https://www.youtube.com/watch?v=E0uWp8nhzAk) : This video guides you through the pricing options available when choosing to list a SaaS product.
 * [AWS Marketplace - Seller Guide](https://docs.aws.amazon.com/marketplace/latest/userguide/what-is-marketplace.html) : This document covers more information about creating a SaaS product, pricing, and setting up your integration.
 
-
 # Project Structure
 
 The sample in this repository demonstrates how to use AWS SAM (Serverless application model) to integrate your SaaS product with AWS Marketplace and how to perform:
@@ -21,7 +20,6 @@ The sample in this repository demonstrates how to use AWS SAM (Serverless applic
 - [Grant and revoke access to your product](#grant-and-revoke-access-to-your-product)
 - [Metering for usage](#metering-for-usage)
 - [Deploying the sample application using Serverless Application Model Command Line Interface (SAM CLI)](#)
-
 
 ## Register new customers
 
@@ -56,14 +54,12 @@ In our implementation the Marketplace Tech Admin (The email address you have ent
 
 The property successfully subscribed is set when successful response is returned from the SQS entitlement handler for SaaS Contract based listings or after receiving **subscribe-success message from the Subscription SNS Topic in the case of AWS SaaS subscriptions in the `subscription-sqs-handler.js`.
 
-
 ### Update entitlement levels to new subscribers (SaaS Contracts only)
 
 Each time the entitlement is update we receive message on the SNS topic. 
 The lambda function `entitlement-sqs.js` on each message is calling the marketplaceEntitlementService and storing the response in the dynamoDB.
 
 We are using the same DynamoDB stream to detect changes in the entailment for SaaS contracts. When the entitlement is update notification is sent to the `MarketplaceTechAdmin`.
-
 
 ### Revoke access to customers with expired contracts and cancelled subscriptions 
 
@@ -164,13 +160,10 @@ To build and deploy your application, you must sign in to the AWS Management Con
 * Amazon SNS topic
 * Amazon EventBridge
 
-
 > [!NOTE]  
 For simplicity, we use [AWS CloudShell](https://docs.aws.amazon.com/cloudshell/latest/userguide/welcome.html) to deploy the application since it has the required tools pre-installed. If you wish to run the deployment in an alternate shell, you'll need to install [Docker community edition](https://hub.docker.com/search/?type=edition&offering=community), [Node.js 10 (including NPM)](https://nodejs.org/en/), [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html), and [SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html).
 
-
-To build and deploy your application for the first time, complete the following steps.
-
+To build and deploy your application for the first time, complete the following steps:
 
 1. Using the AWS account registered as your [AWS Marketplace Seller account](https://docs.aws.amazon.com/marketplace/latest/userguide/seller-registration-process.html), open [AWS CloudShell](https://us-east-1.console.aws.amazon.com/cloudshell). 
 
@@ -228,7 +221,6 @@ To build and deploy your application for the first time, complete the following 
 aws s3 cp ./web/ s3://<NAME_OF_THE_BUCKET_SELECTED_FOR_WebsiteS3BucketName>/ --recursive
 ```
 
-
 ### Diagram of created resources
 
 Based on the value of the **TypeOfSaaSListing** parameter different set of resources will be created. 
@@ -241,7 +233,6 @@ In the case of a *subscriptions* the resources market with purple circles will n
 
 The landing page is optional. Use the CreateRegistrationWebPage parameter.
 
-
 ![](misc/AWS-Marketplace-SaaS-Integration.drawio.png)
 
 
@@ -253,7 +244,6 @@ To delete the sample application that you created, use the AWS CLI. Assuming you
 aws cloudformation delete-stack --stack-name app
 ```
 
-
 ## Security
 
 See [CONTRIBUTING](CONTRIBUTING.md#security-issue-notifications) for more information.
@@ -262,18 +252,17 @@ See [CONTRIBUTING](CONTRIBUTING.md#security-issue-notifications) for more inform
 
 This library is licensed under the MIT-0 License. See the LICENSE file.
 
-
 ## Post deployment steps
 
 ## Registration page is true
-1. Update the MarketplaceFulfillmentUrl in your AWS Marketplace Management Portal with the value from the output key 'MarketplaceFulfillmentUrl'. The value would be in a the form of a AWS cloudfront based url.
-2. Replace the baseUrl value in the web/script.js file from the web template provided with the value from the output key 'RedirectUrl'. 
-3. Replace the RedirectUrl value in the lambda environment variable with the value from the output key 'RedirectUrl'. Navigate to the AWS Console, look for AWS Lambda service, filter to the lambda with name ....Redirect... . Select the lambda function, go to configuration tab and then select the environment variable. 
+1. Update the `MarketplaceFulfillmentUrl` in your AWS Marketplace Management Portal with the value from the CloudFormation output key `MarketplaceFulfillmentUrl`. The value is in the form of an Amazon CloudFront URL.
+2. Replace the `baseUrl` value in the `web/script.js` file from the web template provided with the `LandingPagePreviewURL` output value (important: *without* the `index.html` path).
+3. Replace the `RedirectUrl` value in the LambdaRedirectPostRequests function's environment variable with the value from the `MarketplaceFulfillmentURL` output key. Navigate to the AWS Lambda service in the console, select the function with name <prefix>`LambdaRedirectPostRequests`<suffix>, click on the `Configuration` tab and then edit the `RedirectUrl` environment variable. 
 4. Ensure the email address used is a verified identity/domain in Amazon Simple Email Service.
 5. Ensure your Amazon Simple Email Service account is a production account. 
 
 ## Registration page is false
-1. Update the MarketplaceFulfillmentUrl in your AWS Marketplace Management Portal with the value from the output key 'MarketplaceFulfillmentUrl'. The value would be in the form of an AWS API gateway url.
-2. Replace the baseUrl value in the web/script.js file from the web template provided with the value from the output key 'RedirectUrl'.
+1. Update the `MarketplaceFulfillmentUrl` in your AWS Marketplace Management Portal with the value from the output key 'MarketplaceFulfillmentUrl'. The value is in the form of an AWS API Gateway URL.
+2. Replace the `baseUrl` value in the `web/script.js` file from the web template provided with the `LandingPagePreviewURL` output value (important: *without* the `index.html` path).
 3. Ensure the email address used is a verified identity/domain in Amazon Simple Email Service.
 4. Ensure your Amazon Simple Email Service account is a production account.
