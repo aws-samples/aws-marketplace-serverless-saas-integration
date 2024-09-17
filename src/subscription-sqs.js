@@ -41,8 +41,8 @@ exports.SQSHandler = async (event) => {
     } else if (message.action === 'subscribe-fail') {
       const SNSparams = {
         TopicArn,
-        Subject: 'AWS Marketplace Subscription failed',
-        Message: `Subscription failed: ${JSON.stringify(message)}`,
+        Subject: 'AWS Marketplace Subscription Setup failed',
+        Message: `Subscription setup failed: ${JSON.stringify(message)}`,
       };
       await SNS.publish(SNSparams).promise();
     } else if (message.action === 'unsubscribe-success') {

@@ -221,10 +221,11 @@ exports.dynamodbStreamHandler = async (event, context) => {
           }
           sendMessage(subject, message);
         } catch (err) {
+          console.error(err);
           const errorString = `${err.code ? err.code : ''}: ${err.message} ${err.statusCode ? 'Status code' : err.statusCode}`;
           logger.error("Failed to process customer subscription", { data: errorString });
           subject = "AWS Marketplace - failed to process customer subscription";
-          message = `unsubscribe-fail: ${JSON.stringify(newImage)}`;
+          message = `subscribe-fail: ${JSON.stringify(newImage)}`;
           sendMessage(subject, message);
           throw new Error(`Failed to assume role: ${err.message}`);
         }
