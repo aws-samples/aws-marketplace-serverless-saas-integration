@@ -285,7 +285,7 @@ async function disableUsers(cognitoClient, tenantId) {
   const listUsersParams = {
     UserPoolId: cognitoUserPoolId,
     AttributesToGet: ["custom:tenantId", "Username"],
-    Limit: 100,
+    Limit: 60,
     // PaginationToken: null  // Add code to iterate through multiple retrievals
   };
   try {
