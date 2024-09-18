@@ -212,17 +212,22 @@ exports.dynamodbStreamHandler = async (event, context) => {
               subject = "AWS Marketplace Subscription Revoked";
               message = `unsubscribe-success: ${JSON.stringify(revokeCustomerAccess)}`;
             } catch (err) {
-              const errorString = `${err.code ? err.code : ''}: ${err.message} ${err.statusCode ? 'Status code' : err.statusCode}`;
+              const errorCode = `${err.code + ': ' ? err.code : ''}`;
+              const statusCode = `${err.statusCode + '+' ? 'Status code: ' + err.statusCode : ''}`;
+              const errorString = `${errorCode} ${err.message} ${statusCode}`;
               logger.error("Failed to disable user", { data: errorString });
               subject = "AWS Marketplace - failed to revoke subscription for customer " + newImage.customerIdentifier;
               message = `unsubscribe-fail: ${JSON.stringify(newImage)}`;
+              sendMessage(subject, message);
               throw new Error(`Failed to disable user: ${err.message}`);
             };
           }
           sendMessage(subject, message);
         } catch (err) {
           console.error(err);
-          const errorString = `${err.code ? err.code : ''}: ${err.message} ${err.statusCode ? 'Status code' : err.statusCode}`;
+          const errorCode = `${err.code + ': ' ? err.code : ''}`;
+          const statusCode = `${err.statusCode + '+' ? 'Status code: ' + err.statusCode : ''}`;
+          const errorString = `${errorCode} ${err.message} ${statusCode}`;
           logger.error("Failed to process customer subscription", { data: errorString });
           subject = "AWS Marketplace - failed to process customer subscription";
           message = `subscribe-fail: ${JSON.stringify(newImage)}`;
@@ -275,7 +280,9 @@ async function createAdminUser(cognitoClient, newUser) {
     logger.debug("addNewUserToTenantAdminsGroupOutcome", { data: addUserToGroupResponse });
     return `${JSON.stringify(createUserResponse)} \n ${JSON.stringify(addUserToGroupResponse)}`;
   } catch (err) {
-    const errorString = `${err.code ? err.code + ':' : ''} ${err.message} ${err.statusCode ? 'Status code: ' + err.statusCode : err.statusCode}`;
+    const errorCode = `${err.code + ': ' ? err.code : ''}`;
+    const statusCode = `${err.statusCode + '+' ? 'Status code: ' + err.statusCode : ''}`;
+    const errorString = `${errorCode} ${err.message} ${statusCode}`;
     logger.error("Failed to create new Tenant Admin user", { data: errorString });
     throw err;
   }
@@ -306,7 +313,9 @@ async function disableUsers(cognitoClient, tenantId) {
       }
     };
   } catch (err) {
-    const errorString = `${err.code ? err.code : ''}: ${err.message} ${err.statusCode ? 'Status code' : err.statusCode}`;
+    const errorCode = `${err.code + ': ' ? err.code : ''}`;
+    const statusCode = `${err.statusCode + '+' ? 'Status code: ' + err.statusCode : ''}`;
+    const errorString = `${errorCode} ${err.message} ${statusCode}`;
     logger.error("Failed to disable users", { data: errorString });
     throw err;
     // throw new Error(`Failed to disable users: ${err.message}`);
