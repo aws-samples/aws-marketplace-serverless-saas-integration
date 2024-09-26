@@ -31,9 +31,30 @@ const lambdaResponse = (statusCode, body) => ({
 
 const setBuyerNotificationHandler = function (contactEmail) {
   if (typeof marketplaceSellerEmail == "undefined") {
-    logger.info("Marketplace configuration error", {data: "No Marketplace Seller Email definedNo Marketplace Seller Email defined"});
+    logger.info("Marketplace configuration error", {data: "No Marketplace Seller Email defined"});
     return;
   }
+  const htmlContent = `<!DOCTYPE html>
+    <html>
+      <head>
+        <title>Welcome!</title>
+      </head>
+      <body>
+        <h1>Welcome!</h1>
+        <p>Thank you for purchasing City Trax Translate.</p>
+        <p>We\u2019re thrilled to have you on board.  Your account credentials are being set up.  You will shortly receive one email confirming your subscription, and a separate email with your initial login password to access it on https://ctxtranslate.cloud.  If this has not arrived within 24 hours, please check your email spam folder, and if you still have not received it, contact Support through our website.</p>
+        <p>Kind regards,</p>
+        <p>City Trax Sales</p>
+      </body>
+    </html>`;
+  const textContent = `Welcome! Thank you for purchasing City Trax Translate. We’re thrilled to have you on board.  Your account credentials are being set up.  You will shortly receive one email confirming your subscription, and a separate email with your initial login password to access it on https://ctxtranslate.cloud.  If this has not arrived within 24 hours, please check your email spam folder, and if you still have not received it, contact Support through our website.
+  
+  Kind regards,
+  
+  City Trax Sales`;
+
+  const subjectContent = "Welcome to City Trax Translate";
+
   let params = {
     Destination: {
       ToAddresses: [contactEmail],
@@ -42,17 +63,16 @@ const setBuyerNotificationHandler = function (contactEmail) {
       Body: {
         Html: {
           Charset: "UTF-8",
-          Data: "<!DOCTYPE html><html><head><title>Welcome!</title></head><body><h1>Welcome!</h1><p>Thank you for purchasing City Trax Translate.</p><p>We\u2019re thrilled to have you on board.  Your account credentials are in the process of being set up.  You will shortly receive two separate emails with the necessary details.  If these have not arrived within 24 hours, please check your email spam folder, and if you still have not received them, contact Support through our website.</p></body></html>",
+          Data: htmlContent,
         },
         Text: {
           Charset: "UTF-8",
-          Data: "Welcome! Thank you for purchasing City Trax Translate. We’re thrilled to have you on board.  Your account credentials are in the process of being set up.  You will shortly receive two separate emails with the necessary details.  If these have not arrived within 24 hours, please check your email spam folder, and if you still have not received them, contact Support through our website.",
+          Data: textContent
         },
       },
-
       Subject: {
         Charset: "UTF-8",
-        Data: "Welcome Email",
+        Data: subjectContent,
       },
     },
     Source: marketplaceSellerEmail,
@@ -132,7 +152,7 @@ exports.registerNewSubscriber = async (event, context) => {
 
       return lambdaResponse(
         200,
-        "Success! Registration completed: you have purchased access to City Trax Translate.  Your account credentials are in the process of being set up.  You will shortly receive two separate emails with the necessary details.  If these have not arrived within 24 hours, please check your email spam folder, and if you still have not received them, contact Support through our website."
+        "Success! Registration completed: you have purchased access to City Trax Translate.  Your account credentials are being set up.  You will shortly receive a separate email with your initial login password to access it on https://ctxtranslate.cloud.  If this has not arrived within 24 hours, please check your email spam folder, and if you still have not received it, contact Support through our website."
       );
     } catch (error) {
       console.error(`\n\nError attempting to register new subscriber:\n${error}\n`);

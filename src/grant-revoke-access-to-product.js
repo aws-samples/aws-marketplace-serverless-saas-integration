@@ -13,7 +13,7 @@ const {
   AdminCreateUserCommand,
   ListUsersCommand,
   AdminDisableUserCommand,
-  AdminDeleteUserCommand,
+  AdminEnableUserCommand,
   AdminUpdateUserAttributesCommand,
   CognitoIdentityProviderClient,
 } = require("@aws-sdk/client-cognito-identity-provider");
@@ -51,6 +51,7 @@ exports.dynamodbStreamHandler = async (event, context) => {
         (typeof newImage.is_free_trial_term_present !== "undefined" && typeof oldImage.is_free_trial_term_present === "undefined");
 
       const revokeAccess = newImage.subscription_expired === true && !oldImage.subscription_expired;
+      const reinstateAccess = !newImage.subscription_expired === true && oldImage.subscription_expired;
 
       let entitlementUpdated = false;
 
@@ -65,6 +66,7 @@ exports.dynamodbStreamHandler = async (event, context) => {
       const subscriptionEvent = {
         accessGrant: grantAccess,
         accessRevocation: revokeAccess,
+        accessReinstatement: reinstateAccess,
         entitlementUpdate: entitlementUpdated,
       };
 
@@ -74,7 +76,7 @@ exports.dynamodbStreamHandler = async (event, context) => {
       let subject = "";
       const sts = new AWS.STS();
 
-      if (grantAccess || revokeAccess || entitlementUpdated) {
+      if (grantAccess || revokeAccess || reinstateAccess || entitlementUpdated) {
         const tenantAdminRoleArn = `arn:aws:iam::${saasAccountId}:role/${tenantAdminRoleName}`;
         logger.debug("Assuming Tenant Admin role in AWS account where CTX deployed", { data: tenantAdminRoleArn })
         const assumeRoleParams = {
@@ -105,139 +107,71 @@ exports.dynamodbStreamHandler = async (event, context) => {
             //  To do: if more users configured than updated entitlement, fail and prompt Support and customer admin via SNS notification to remove some
             subject = "AWS Marketplace Subscription Change";
             message = `entitlement-updated: ${JSON.stringify(newImage)}`;
+            sendMessage(subject, message);
           } else if (grantAccess) {
             try {
               const createUserResponse = await createAdminUser(cognitoIdentityClient, newImage);
               subject = "New AWS Marketplace Subscription";
               message = `subscribe-success: ${JSON.stringify(createUserResponse)}`
+              sendMessage(subject, message);
             } catch (error) {
               subject = "Marketplace Subscription failure";
               message = `subscribe-fail: ${JSON.stringify(error)}`
+              sendMessage(subject, message);
               logger.error("Failed to create new user in City Trax tenant account", { data: error });
             };
-            // try {
-            //   const createUserResponse = await new Promise((resolve, reject) => {
-            //     cognitoIdentityClient.adminCreateUser(createUserParams, (err, data) => {
-            //       if (err) {
-            //         const errorString = `${err.code}: ${err.message}\nStatus code: ${err.statusCode}`;
-            //         logger.error("Failed to create new user in City Trax tenant account", { data: errorString });
-            //         subject = "AWS Marketplace Subscription Failure";
-            //         message = `subscribe-fail: ${JSON.stringify(newImage)}`;
-            //         reject(err);
-            //         throw new Error(`Failed to create new user in City Trax tenant account: ${err.message}`);
-            //       } else {
-            //         resolve(data);
-            //         logger.debug("createNewUserResponse", { data: createUserResponse });
-            //         logger.debug("Data returned from createUser Promise", { data: data });
-            //       }
-            //     });
-            //   });
-
-            //   const addUserToGroupResponse = await new Promise((resolve, reject) => {
-            //     cognitoIdentityClient.adminAddUserToGroup(adminGroupParams, (err, data) => {
-            //       if (err) {
-            //         const errorString = `${err.code}: ${err.message}\nStatus code: ${err.statusCode}`;
-            //         logger.error("Failed to add user to TenantAdmins group", { data: errorString });
-            //         subject = "AWS Marketplace Subscription Failure";
-            //         message = `subscribe-fail: ${JSON.stringify(newImage)}`;
-            //         reject(err);
-            //       } else {
-            //         resolve(data);
-            //         logger.debug("addNewUserToTenantAdminsGroupOutcome", { data: addUserToGroupResponse });
-            //         logger.debug("Data returned from addUserToGroup Promise", { data: data });
-            //         subject = "New AWS Marketplace Subscription";
-            //         message = `subscribe-success: ${JSON.stringify(createUserResponse)}`;
-            //       }
-            //     });
-            //   });
-
-            //   /* Temporary commenting out of async code that doesn't wait to complete:
-
-            //   const createUserCommand = new AdminCreateUserCommand(
-            //     createUserParams
-            //   );
-            //   const createUserResponse =
-            //   await cognitoClient.send(createUserCommand);
-            //   logger.debug("createNewUserOutcome", { data: createUserResponse });
-            //   console.log(`\nFollow-on message after success:\n${JSON.stringify(createUserResponse)}\n`);
-
-            //   const addUserToGroupCommand = new AdminAddUserToGroupCommand(
-            //     adminGroupParams
-            //   );
-            //   const addUserToGroupResponse =
-            //   await cognitoClient.send(addUserToGroupCommand);
-            //   logger.debug("addNewUserToTenantAdminsGroupOutcome", { data: addUserToGroupResponse });
-            //   subject = "New AWS Marketplace Subscription";
-            //   message = `subscribe-success: ${JSON.stringify(createUserResponse)}`;
-            //   */
-
-            //   /*
-            //   In this restructured code:
-            //   - adminCreateUser is called, and its response is awaited using .promise().
-            //   - If the user creation is successful, the then block is executed, where the adminAddUserToGroup is called, and its response is awaited using .promise().
-            //   - If the adminAddUserToGroup is successful, the then block after that is executed, where you can perform any additional follow-up actions.
-            //   - If any of the Cognito operations fail, the catch block is executed, where you can handle the error.
-            //   - By using promises and async/await, you can ensure that the subsequent operations are executed only after the previous asynchronous operation has completed successfully.
-            //   Note: Make sure to handle errors appropriately and replace process.env.USER_POOL_ID and process.env.ADMIN_GROUP_NAME with the actual values from your environment variables.
-            //   */
-
-            //   // cognitoidentityserviceprovider.adminCreateUser(createUserParams)
-            //   //   .promise()
-            //   //   .then(data => {
-            //   //     logger.debug("createNewUserOutcome", { data: data.User });
-            //   //     console.log(`\nFollow-on message after success:\n${JSON.stringify(data.User)}\n`);
-            //   //     return cognitoidentityserviceprovider.adminAddUserToGroup(adminGroupParams).promise();
-            //   //   })
-            //   //   .then(data => {
-            //   //     logger.debug("addNewUserToTenantAdminsGroupOutcome", { data });
-            //   //     subject = "New AWS Marketplace Subscription";
-            //   //     message = `subscribe-success: ${JSON.stringify(newImage)}`;
-            //   //   })
-            //   //   .catch(err => {
-            //   //     const errorString = `${err.code}: ${err.message}\nStatus code: ${err.statusCode}`;
-            //   //     logger.error("Failed to create user", { data: errorString });
-            //   //     subject = "AWS Marketplace Subscription Failure";
-            //   //     message = `subscribe-fail: ${JSON.stringify(newImage)}`;
-            //   //   });
-
-            // } catch (error) {
-            //   const errorString = `${err.code}: ${err.message}\nStatus code: ${err.statusCode}`;
-            //   logger.debug("Failed to create admin user", { data: errorString });
-            //   subject = "AWS Marketplace Subscription Failure";
-            //   message = `subscribe-fail: ${JSON.stringify(newImage)}`;
-            // };
           } else if (revokeAccess) {
             try {
-              const revokeCustomerAccess = await disableUsers(cognitoIdentityClient, newImage.customerIdentifier);
+              const revokeCustomerAccess = await disableUsers(cognitoIdentityClient, newImage);
               subject = "AWS Marketplace Subscription Revoked";
-              message = `unsubscribe-success: ${JSON.stringify(revokeCustomerAccess)}`;
+              message = `unsubscribe-success: ${revokeCustomerAccess}`;
+              sendMessage(subject, message);
             } catch (err) {
-              const errorCode = `${err.code + ': ' ? err.code : ''}`;
-              const statusCode = `${err.statusCode + '+' ? 'Status code: ' + err.statusCode : ''}`;
+              const errorCode = `${err.code ? err.code + ': ' : ''}`;
+              const statusCode = `${err.statusCode ? 'Status code: ' + err.statusCode : ''}`;
               const errorString = `${errorCode} ${err.message} ${statusCode}`;
               logger.error("Failed to disable user", { data: errorString });
-              subject = "AWS Marketplace - failed to revoke subscription for customer " + newImage.customerIdentifier;
+              subject = "AWS Marketplace - failed to revoke subscription for customer ID " + newImage.customerIdentifier;
               message = `unsubscribe-fail: ${JSON.stringify(newImage)}`;
               sendMessage(subject, message);
-              throw new Error(`Failed to disable user: ${err.message}`);
+              throw err;
+              // throw new Error(`Failed to disable user: ${err.message}`);
+            };
+          } else if (reinstateAccess) {
+            try {
+              const reinstateCustomerAccess = await enableUsers(cognitoIdentityClient, newImage);
+              subject = "AWS Marketplace Subscription Reinstate";
+              message = `subscribe-success: ${reinstateCustomerAccess}`;
+              sendMessage(subject, message);
+            } catch (err) {
+              const errorCode = `${err.code ? err.code + ': ' : ''}`;
+              const statusCode = `${err.statusCode ? 'Status code: ' + err.statusCode : ''}`;
+              const errorString = `${errorCode} ${err.message} ${statusCode}`;
+              logger.error("Failed to enable user", { data: errorString });
+              subject = "AWS Marketplace - failed to reinstate subscription for customer ID " + newImage.customerIdentifier;
+              message = `unsubscribe-fail: ${JSON.stringify(newImage)}`;
+              sendMessage(subject, message);
+              // throw new Error(`Failed to enable user: ${err.message}`);
+              throw err;
             };
           }
-          sendMessage(subject, message);
+          // sendMessage(subject, message);
         } catch (err) {
           console.error(err);
-          const errorCode = `${err.code + ': ' ? err.code : ''}`;
-          const statusCode = `${err.statusCode + '+' ? 'Status code: ' + err.statusCode : ''}`;
+          const errorCode = `${err.code ? err.code + ': ' : ''}`;
+          const statusCode = `${err.statusCode ? 'Status code: ' + err.statusCode : ''}`;
           const errorString = `${errorCode} ${err.message} ${statusCode}`;
-          logger.error("Failed to process customer subscription", { data: errorString });
-          subject = "AWS Marketplace - failed to process customer subscription";
+          logger.error("Failed to process change to customer subscription", { data: errorString });
+          subject = "AWS Marketplace - failed to process change to customer subscription";
           message = `subscribe-fail: ${JSON.stringify(newImage)}`;
           sendMessage(subject, message);
-          throw new Error(`Failed to assume role: ${err.message}`);
+          // throw new Error(`Failed to assume role: ${err.message}`);
+          throw err;
         }
       } else {
         if (JSON.stringify(newImage) === '{}') {
           logger.info("Tenant record deleted");
-          subject = "Subscriber Deleted for City Trax Translate";
+          subject = "Subscriber deleted for City Trax Translate";
           message = `Customer ${oldImage.organisationName} (Tenant ID ${oldImage.customerIdentifier}) deleted`;
           sendMessage(subject, message);
         }
@@ -280,18 +214,34 @@ async function createAdminUser(cognitoClient, newUser) {
     logger.debug("addNewUserToTenantAdminsGroupOutcome", { data: addUserToGroupResponse });
     return `${JSON.stringify(createUserResponse)} \n ${JSON.stringify(addUserToGroupResponse)}`;
   } catch (err) {
-    const errorCode = `${err.code + ': ' ? err.code : ''}`;
-    const statusCode = `${err.statusCode + '+' ? 'Status code: ' + err.statusCode : ''}`;
+    if (err.name === "UsernameExistsException") {
+      const updateUserParams = {
+        UserPoolId: cognitoUserPoolId,
+        Username: newUser.contactEmail,
+        UserAttributes: [
+          { Name: "given_name", Value: newUser.firstName },
+          { Name: "family_name", Value: newUser.lastName },
+          { Name: "phone_number", Value: newUser.contactPhone },
+        ],
+      };
+      const updateUserCommand = new AdminUpdateUserAttributesCommand(updateUserParams);
+      const updateUserResponse = await cognitoClient.send(updateUserCommand);
+      logger.debug("updateUserResponse", { data: updateUserResponse });
+      return `Admin user already exists, but attributes updated: ${JSON.stringify(updateUserResponse)}`;
+    }
+    console.error(`Error details:\n${err}`);
+    const errorCode = `${err.code ? err.code + ': ' : ''}`;
+    const statusCode = `${err.statusCode ? 'Status code: ' + err.statusCode : ''}`;
     const errorString = `${errorCode} ${err.message} ${statusCode}`;
     logger.error("Failed to create new Tenant Admin user", { data: errorString });
     throw err;
   }
 }
 
-async function disableUsers(cognitoClient, tenantId) {
+async function disableUsers(cognitoClient, tenantDetails) {
   const listUsersParams = {
     UserPoolId: cognitoUserPoolId,
-    AttributesToGet: ["custom:tenantId", "Username"],
+    AttributesToGet: ["custom:tenantId"],
     Limit: 60,
     // PaginationToken: null  // Add code to iterate through multiple retrievals
   };
@@ -305,20 +255,56 @@ async function disableUsers(cognitoClient, tenantId) {
     };
     // Now disable all users in that list
     for (const user of listUsersResponse.Users) {
-      if (user.Attributes.find((attr) => attr.Name === "custom:tenantId" && attr.Value === tenantId)) {
+      if (user.Attributes.find((attr) => attr.Name === "custom:tenantId" && attr.Value === tenantDetails.customerIdentifier)) {
         disableUserParams.Username = user.Username;
         const disableUserCommand = new AdminDisableUserCommand(disableUserParams);
         const disableUserResponse = await cognitoClient.send(disableUserCommand);
         logger.debug("Disabling user", { data: disableUserResponse });
       }
     };
+    return `Subscription revoked for customer ${tenantDetails.organisationName}, ID ${tenantDetails.customerIdentifier}`;
   } catch (err) {
-    const errorCode = `${err.code + ': ' ? err.code : ''}`;
-    const statusCode = `${err.statusCode + '+' ? 'Status code: ' + err.statusCode : ''}`;
+    const errorCode = `${err.code ? err.code + ': ' : ''}`;
+    const statusCode = `${err.statusCode ? 'Status code: ' + err.statusCode : ''}`;
     const errorString = `${errorCode} ${err.message} ${statusCode}`;
     logger.error("Failed to disable users", { data: errorString });
     throw err;
     // throw new Error(`Failed to disable users: ${err.message}`);
+  };
+}
+
+async function enableUsers(cognitoClient, tenantDetails) {
+  const listUsersParams = {
+    UserPoolId: cognitoUserPoolId,
+    AttributesToGet: ["custom:tenantId"],
+    Limit: 60,
+    // PaginationToken: null  // Add code to iterate through multiple retrievals
+  };
+  try {
+    // List users in Cognito with this Customer Identifier
+    const listUsersCommand = new ListUsersCommand(listUsersParams);
+    const listUsersResponse = await cognitoClient.send(listUsersCommand);
+    logger.debug("listUsersResponse", { data: listUsersResponse });
+    const enableUserParams = {
+      UserPoolId: cognitoUserPoolId,
+    };
+    // Now re-enable all users in the list
+    for (const user of listUsersResponse.Users) {
+      if (user.Attributes.find((attr) => attr.Name === "custom:tenantId" && attr.Value === tenantDetails.customerIdentifier)) {
+        enableUserParams.Username = user.Username;
+        const enableUserCommand = new AdminEnableUserCommand(enableUserParams);
+        const enableUserResponse = await cognitoClient.send(enableUserCommand);
+        logger.debug("Enabling user", { data: enableUserResponse });
+      }
+    };
+    return `Subscription reinstated for customer ${tenantDetails.organisationName}, ID ${tenantDetails.customerIdentifier}`;
+  } catch (err) {
+    const errorCode = `${err.code ? err.code + ': ' : ''}`;
+    const statusCode = `${err.statusCode ? 'Status code: ' + err.statusCode : ''}`;
+    const errorString = `${errorCode} ${err.message} ${statusCode}`;
+    logger.error("Failed to re-enable users", { data: errorString });
+    throw err;
+    // throw new Error(`Failed to re-enable users: ${err.message}`);
   };
 }
 
