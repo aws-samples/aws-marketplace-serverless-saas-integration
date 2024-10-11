@@ -25,11 +25,11 @@ exports.dynamodbStreamHandler = async (event, context) => {
     /*
       successfully_subscribed is set true:
         - for SaaS Contracts: no email is sent but after receiving the message in the subscription topic
-        - for SaaS Subscriptions: after reciving the subscribe-success message in subscription-sqs.js
+        - for SaaS Subscriptions: after receiving the subscribe-success message in subscription-sqs.js
   
       subscription_expired is set to true:
         - for SaaS Contracts: after detecting expired entitlement in entitlement-sqs.js
-        - for SaaS Subscriptions: after reciving the unsubscribe-success message in subscription-sqs.js
+        - for SaaS Subscriptions: after receiving the unsubscribe-success message in subscription-sqs.js
     */
     const grantAccess = newImage.successfully_subscribed === true &&
       typeof newImage.is_free_trial_term_present !== "undefined" &&
