@@ -12,7 +12,7 @@ phases:
       - echo "${AWSMarketplaceMeteringRecordsTableName}"
       - echo "${MarketplaceTechAdminEmail}"
       - echo "${NewSubscribersTableName}"
-      - echo "${ProductCode}"
+      - echo "${ProductId}"
       - echo "${TypeOfSaaSListing}"
       - echo "${WebsiteS3BucketName}"
       - echo "${SNSAccountID}"
@@ -21,6 +21,7 @@ phases:
       - echo "${CrossAccountId}"
       - echo "${CrossAccountRoleName}"
       - echo "${CreateRegistrationWebPage}"
+      - echo "${UpdateFulfillmentURL}"
   build:
     commands:
       - echo Build started
@@ -32,7 +33,7 @@ phases:
         ParameterKey=WebsiteS3BucketName,ParameterValue=${WebsiteS3BucketName}-${CODEBUILD_BUILD_NUMBER} \
         ParameterKey=NewSubscribersTableName,ParameterValue=${NewSubscribersTableName}-${CODEBUILD_BUILD_NUMBER} \
         ParameterKey=AWSMarketplaceMeteringRecordsTableName,ParameterValue=${AWSMarketplaceMeteringRecordsTableName}-${CODEBUILD_BUILD_NUMBER} \
-        ParameterKey=ProductCode,ParameterValue=${ProductCode} \
+        ParameterKey=ProductId,ParameterValue=${ProductId} \
         ParameterKey=MarketplaceTechAdminEmail,ParameterValue=${MarketplaceTechAdminEmail} \
         ParameterKey=MarketplaceSellerEmail,ParameterValue=${MarketplaceTechAdminEmail} \
         ParameterKey=SNSAccountID,ParameterValue=${SNSAccountID} \
@@ -40,9 +41,8 @@ phases:
         ParameterKey=CreateCrossAccountRole,ParameterValue=${CreateCrossAccountRole} \
         ParameterKey=CrossAccountId,ParameterValue=${CrossAccountId} \
         ParameterKey=CrossAccountRoleName,ParameterValue=${CrossAccountRoleName}-${CODEBUILD_BUILD_NUMBER} \
-        ParameterKey=CreateRegistrationWebPage,ParameterValue=${CreateRegistrationWebPage}
-        
-        aws s3 cp ./web/ s3://${WebsiteS3BucketName}-${CODEBUILD_BUILD_NUMBER}/ --recursive
+        ParameterKey=CreateRegistrationWebPage,ParameterValue=${CreateRegistrationWebPage} \
+        ParameterKey=UpdateFulfillmentURL,ParameterValue=${UpdateFulfillmentURL}
   post_build:
     commands:
       - echo Build completed

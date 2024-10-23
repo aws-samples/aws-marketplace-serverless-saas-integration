@@ -201,7 +201,7 @@ To build and deploy your application for the first time, complete the following 
     NewSubscribersTableName | Name for the New Subscribers Table; Default value: AWSMarketplaceSubscribers
     AWSMarketplaceMeteringRecordsTableName | Name for the Metering Records Table; Default value: AWSMarketplaceMeteringRecords
     TypeOfSaaSListing | allowed values: contracts_with_subscription, contracts, subscriptions; Default value: contracts_with_subscription
-    ProductCode | Product code provided from AWS Marketplace
+    ProductId | Product id provided from AWS Marketplace
     MarketplaceTechAdminEmail | Email to be notified on changes requiring action
     MarketplaceSellerEmail | (Optional) Seller email address, verified in SES and in 'Production' mode. See [Verify an email address](https://docs.aws.amazon.com/ses/latest/DeveloperGuide/verify-email-addresses-procedure.html) for instruction to verify email addresses.
     SNSAccountID | AWS account ID hosting the Entitlements and Subscriptions SNS topics. Leave as default.
@@ -215,11 +215,6 @@ To build and deploy your application for the first time, complete the following 
 
 8. Check the email account for **MarketplaceTechAdminEmail** and approve the subscription to the SNS topic.
 
-9. If a registration page was created, copy the web files into the WebsiteS3BucketName.
-
-```bash
-aws s3 cp ./web/ s3://<NAME_OF_THE_BUCKET_SELECTED_FOR_WebsiteS3BucketName>/ --recursive
-```
 
 ### Diagram of created resources
 
