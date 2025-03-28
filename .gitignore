@@ -5,3 +5,4 @@ node_modules
 packaged.yaml
 deploy.sh
 *.toml
+.idea
