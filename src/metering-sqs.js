@@ -1,8 +1,3 @@
-/*
-    This does nothing because I moved all of the billing logic into the metering-sqs.js file to be done at once.
-    I figure it might be useful to have this kept for now in case we need to do something with it later.
- */
-
 const AWS = require('aws-sdk');
 const { ProductCode: ProductCode, AWSMarketplaceMeteringRecordsTableName: AWSMarketplaceMeteringRecordsTableName , AWS_REGION: aws_region } = process.env;
 const dynamodb = new AWS.DynamoDB({ apiVersion: '2012-08-10', region: aws_region });
@@ -42,7 +37,7 @@ exports.handler = async (event) => {
       meteringResponse = JSON.stringify(error);
       meteringFailed = true;
     }
-
+      
 
       await Promise.all(body.create_timestamps.map(async (ts) => {
         const dynamoDbParams = {
@@ -60,9 +55,9 @@ exports.handler = async (event) => {
         };
 
         await dynamodb.updateItem(dynamoDbParams).promise();
-
+       
       }));
-
+  
   }));
 
 

@@ -5,14 +5,8 @@
   "repository": "https://github.com/orgs/aws-samples/aws-marketplace-saas-serverless-integration",
   "author": "Martin Gjoshevski <gjoshm@amazon.com>",
   "license": "MIT-0",
-  "type": "module",
   "dependencies": {
     "aws-sdk": "^2.1354.0",
-    "node-fetch": "^3.3.2",
     "winston": "3.8.2"
-  },
-  "scripts": {
-    "locally": "node -e \"console.log(require('./scratch-enroll.js').handler(require('./test.json')));\""
   }
-
 }
