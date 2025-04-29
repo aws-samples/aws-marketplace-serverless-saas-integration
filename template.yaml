@@ -669,52 +669,57 @@ Resources:
           <title>Registration page</title>
         </head>
         <body>
-        <div class="form-container text-left">
-          <div id="form-wrapper">
-            <h1>Artisan Edge Platform</h1>
-            <form class="form-signin" id="subscription-form">
-              <label for="companyName">Organization Name</label>
-              <input
-                type="text"
-                name="companyName"
-                id="companyName"
-                placeholder="Enter organization name..."
-                required
-              />
-
-              <label for="contactPerson">Primary Contact Name</label>
-              <input
-                type="text"
-                name="contactPerson"
-                id="contactPerson"
-                placeholder="Enter contact name..."
-                required
-              />
-
-              <label for="contactEmail">Primary Contact Email Address</label>
-              <input
-                type="email"
-                name="contactEmail"
-                id="contactEmail"
-                placeholder="Enter contact email..."
-                required
-              />
-
-              <div class="btn-group">
-                <button type="button" class="btn-cancel" onclick="window.history.back()">Cancel</button>
-                <button type="submit" class="btn-submit" disabled>Subscribe</button>
-              </div>
-            </form>
+        <div class="page-wrapper">
+          <div class="page-header">
+            <img src="misc/SecondaryLogo.png" alt="Artisan Studios Logo" class="logo">
           </div>
-
-          <div id="success-wrapper" style="display: none; text-align: center;">
-            <div class="badge-success">✅ SUBSCRIPTION SUCCESSFUL</div>
-            <h2 class="mt-4 mb-3 font-weight-bold">Welcome to the Artisan Edge Platform</h2>
-            <p class="mb-4">
-              Instructions for logging into your Edge account have been sent to your email.
-              If you don’t see that email soon, contact support for assistance.
-            </p>
-            <a href="mailto:support@artisan.com" class="btn-cancel">Email Support</a>
+          <div class="form-container text-left">
+            <div id="form-wrapper">
+              <h1>Artisan Edge Platform</h1>
+              <form class="form-signin" id="subscription-form">
+                <label for="companyName">Organization Name</label>
+                <input
+                  type="text"
+                  name="companyName"
+                  id="companyName"
+                  placeholder="Enter organization name..."
+                  required
+                />
+  
+                <label for="contactPerson">Primary Contact Name</label>
+                <input
+                  type="text"
+                  name="contactPerson"
+                  id="contactPerson"
+                  placeholder="Enter contact name..."
+                  required
+                />
+  
+                <label for="contactEmail">Primary Contact Email Address</label>
+                <input
+                  type="email"
+                  name="contactEmail"
+                  id="contactEmail"
+                  placeholder="Enter contact email..."
+                  required
+                />
+  
+                <div class="btn-group">
+                  <button type="button" class="btn-cancel" onclick="window.history.back()">Cancel</button>
+                  <button type="submit" class="btn-submit" disabled>Subscribe</button>
+                </div>
+              </form>
+            </div>
+  
+            <div id="success-wrapper" style="display: none; text-align: center;">
+              <div class="badge-success">✅ SUBSCRIPTION SUCCESSFUL</div>
+              <h2 class="mt-4 mb-3 font-weight-bold">Welcome to the Artisan Edge Platform</h2>
+              <p class="mb-4">
+                Instructions for logging into your Edge account have been sent to your email.
+                If you don’t see that email soon, contact support for assistance.
+              </p>
+              <a href="mailto:support@artisan.com" class="btn-cancel">Email Support</a>
+            </div>
           </div>
         </div>
 
@@ -917,6 +922,18 @@ Resources:
           font-weight: bold;
           text-transform: uppercase;
           margin-bottom: 12px;
+        }
+        
+        .page-header {
+          position: absolute;
+          top: 32px;
+          left: 32px;
+          z-index: 10;
+        }
+        
+        .logo {
+          height: 24px;
+          object-fit: contain;
         }
   
   S3ContentLogo:
