@@ -961,7 +961,7 @@ Resources:
                   - !Ref AWS::StackId
       Handler: index.handler
       Role: !GetAtt S3ContentCustomResourceRole.Arn
-      Runtime: nodejs20.x
+      Runtime: nodejs22.x
   # Role for custom Lambda function to log activity and put/delete objects in S3 bucket created in this template
   S3ContentCustomResourceRole:
     Type: AWS::IAM::Role
