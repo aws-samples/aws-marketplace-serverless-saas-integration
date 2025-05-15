@@ -229,7 +229,7 @@ Resources:
     Properties:
       CodeUri: src/
       Handler: register-new-subscriber.registerNewSubscriber
-      Runtime: nodejs18.x
+      Runtime: nodejs22.x
       Environment:
         Variables:
           NewSubscribersTableName: !Ref NewSubscribersTableName
@@ -280,7 +280,7 @@ Resources:
     Properties:
       CodeUri: src
       Handler: entitlement-sqs.handler
-      Runtime: nodejs18.x
+      Runtime: nodejs22.x
       Environment:
         Variables:
           NewSubscribersTableName: !Ref NewSubscribersTableName
@@ -311,7 +311,7 @@ Resources:
     Properties:
       CodeUri: src
       Handler: subscription-sqs.SQSHandler
-      Runtime: nodejs18.x
+      Runtime: nodejs22.x
       Environment:
         Variables:
           NewSubscribersTableName: !Ref NewSubscribersTableName
@@ -346,7 +346,7 @@ Resources:
     Properties:
       CodeUri: src
       Handler: grant-revoke-access-to-product.dynamodbStreamHandler
-      Runtime: nodejs18.x
+      Runtime: nodejs22.x
       Environment:
         Variables:
           SupportSNSArn: !Ref SupportSNSTopic
@@ -373,7 +373,7 @@ Resources:
     Properties:
       CodeUri: src
       Handler: metering-hourly-job.job
-      Runtime: nodejs18.x
+      Runtime: nodejs22.x
       Environment:
         Variables:
           SQSMeteringRecordsUrl: !Ref SQSMeteringRecords
@@ -431,7 +431,7 @@ Resources:
     Properties:
       CodeUri: src
       Handler: metering-sqs.handler
-      Runtime: nodejs18.x
+      Runtime: nodejs22.x
       Environment:
         Variables:
           ProductCode: !GetAtt GetProductCode.ProductCode
@@ -503,7 +503,7 @@ Resources:
     Type: AWS::Serverless::Function
     Condition: CreateWeb
     Properties:
-      Runtime: nodejs18.x
+      Runtime: nodejs22.x
       CodeUri: src/
       Handler: redirect.redirecthandler
       AssumeRolePolicyDocument:
@@ -961,7 +961,7 @@ Resources:
                   - !Ref AWS::StackId
       Handler: index.handler
       Role: !GetAtt S3ContentCustomResourceRole.Arn
-      Runtime: nodejs20.x
+      Runtime: nodejs22.x
   # Role for custom Lambda function to log activity and put/delete objects in S3 bucket created in this template
   S3ContentCustomResourceRole:
     Type: AWS::IAM::Role
@@ -1030,7 +1030,7 @@ Resources:
     Type: AWS::Lambda::Function
     Properties:
       Role: !GetAtt CAPILambdasExecutionRole.Arn
-      Runtime: nodejs18.x
+      Runtime: nodejs22.x
       Handler: index.handler
       Code: 
         ZipFile: |
@@ -1115,7 +1115,7 @@ Resources:
     Type: AWS::Lambda::Function
     Properties:
       Role: !GetAtt CAPILambdasExecutionRole.Arn
-      Runtime: nodejs18.x
+      Runtime: nodejs22.x
       Handler: index.handler
       Code: 
         ZipFile: |
