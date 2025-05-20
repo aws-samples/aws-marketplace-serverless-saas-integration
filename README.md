@@ -2,6 +2,9 @@
 
 ![](misc/banner.png)
 
+> [!IMPORTANT]
+> **For reference purposes only**: The solution created in this repo serves as a reference demonstrating the core components needed for integrating and operating a SaaS listing in AWS Marketplace. While we periodically update the solution to reflect current integration standards, it does not adhere to any service level agreement. Proceed with caution if you intend to use this solution in your production accounts, or on production or other critical data. You are responsible for testing, securing, and optimizing AWS Content, such as sample code, as appropriate for production grade use based on your specific quality control practices and standards.
+
 This project provides example of serverless integration for SaaS products listed on the AWS Marketplace. 
 
 If you are a new seller on AWS Marketplace, we advise you to check the following resources: 
