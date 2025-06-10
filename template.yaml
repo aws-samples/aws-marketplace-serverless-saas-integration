@@ -461,7 +461,11 @@ Resources:
     Type: AWS::S3::Bucket
     Condition: CreateWeb
     Properties:
-      BucketName: !Ref WebsiteS3BucketName
+      BucketName:
+        !If
+          - CreateWeb
+          - !Ref WebsiteS3BucketName
+          - !Ref AWS::NoValue
 
   WebsiteS3BucketLog:
     Type: AWS::S3::Bucket
