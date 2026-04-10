@@ -6,7 +6,15 @@
   "author": "Martin Gjoshevski <gjoshm@amazon.com>",
   "license": "MIT-0",
   "dependencies": {
-    "aws-sdk": "^2.1354.0",
+    "@aws-sdk/client-dynamodb": "^3.741.0",
+    "@aws-sdk/client-marketplace-agreement": "^3.741.0",
+    "@aws-sdk/client-marketplace-catalog": "^3.741.0",
+    "@aws-sdk/client-marketplace-entitlement-service": "^3.741.0",
+    "@aws-sdk/client-marketplace-metering": "^3.741.0",
+    "@aws-sdk/client-ses": "^3.741.0",
+    "@aws-sdk/client-sns": "^3.741.0",
+    "@aws-sdk/client-sqs": "^3.741.0",
+    "@aws-sdk/util-dynamodb": "^3.741.0",
     "winston": "3.8.2"
   }
 }

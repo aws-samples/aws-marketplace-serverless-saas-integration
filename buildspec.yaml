@@ -2,7 +2,7 @@ version: 0.2
 phases:
   install:
     runtime-versions:
-      nodejs: 22
+      nodejs: 24
     commands:
       - node --version
   pre_build:
@@ -15,8 +15,6 @@ phases:
       - echo "${ProductId}"
       - echo "${TypeOfSaaSListing}"
       - echo "${WebsiteS3BucketName}"
-      - echo "${SNSAccountID}"
-      - echo "${SNSRegion}"
       - echo "${CreateCrossAccountRole}"
       - echo "${CrossAccountId}"
       - echo "${CrossAccountRoleName}"
@@ -36,8 +34,6 @@ phases:
         ParameterKey=ProductId,ParameterValue=${ProductId} \
         ParameterKey=MarketplaceTechAdminEmail,ParameterValue=${MarketplaceTechAdminEmail} \
         ParameterKey=MarketplaceSellerEmail,ParameterValue=${MarketplaceTechAdminEmail} \
-        ParameterKey=SNSAccountID,ParameterValue=${SNSAccountID} \
-        ParameterKey=SNSRegion,ParameterValue=${SNSRegion} \
         ParameterKey=CreateCrossAccountRole,ParameterValue=${CreateCrossAccountRole} \
         ParameterKey=CrossAccountId,ParameterValue=${CrossAccountId} \
         ParameterKey=CrossAccountRoleName,ParameterValue=${CrossAccountRoleName}-${CODEBUILD_BUILD_NUMBER} \
@@ -48,13 +44,20 @@ phases:
       - echo Build completed
       - LANDING_PAGE=$(aws cloudformation describe-stacks --stack-name saas-serverless-${CODEBUILD_BUILD_NUMBER} --query "Stacks[0].Outputs[0].OutputValue" --output text --region us-east-1)
       - echo $LANDING_PAGE
-      - TEST_LANDING_PAGE=$(curl -I -s ${LANDING_PAGE} | head -n 1 | cut -d$' ' -f2)
-      - echo $TEST_LANDING_PAGE
       - |
-        if [[ "${TEST_LANDING_PAGE}" == "200" ]]; 
-          then exit 0; 
-        else exit 1; 
-        fi
+        for i in $(seq 1 10); do
+          TEST_LANDING_PAGE=$(curl -I -s ${LANDING_PAGE} | head -n 1 | cut -d$' ' -f2)
+          echo "Attempt ${i}: HTTP status ${TEST_LANDING_PAGE}"
+          if [[ "${TEST_LANDING_PAGE}" == "200" ]]; then
+            exit 0
+          fi
+          if [[ ${i} -lt 10 ]]; then
+            echo "Waiting 10 seconds before retry..."
+            sleep 10
+          fi
+        done
+        echo "Landing page did not return 200 after 10 attempts"
+        exit 1
 artifacts:
   files:
     - '**/*'

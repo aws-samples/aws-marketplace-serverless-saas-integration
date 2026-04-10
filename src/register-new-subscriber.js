@@ -1,9 +1,12 @@
-const AWS = require('aws-sdk');
-const { NewSubscribersTableName: newSubscribersTableName, EntitlementQueueUrl: entitlementQueueUrl, MarketplaceSellerEmail: marketplaceSellerEmail, AWS_REGION:aws_region } = process.env;
-const ses = new AWS.SES({ region: aws_region});
-const marketplacemetering = new AWS.MarketplaceMetering({ apiVersion: '2016-01-14', region: aws_region });
-const dynamodb = new AWS.DynamoDB({ apiVersion: '2012-08-10', region: aws_region });
-const sqs = new AWS.SQS({ apiVersion: '2012-11-05', region: aws_region });
+const { SESClient, SendEmailCommand } = require("@aws-sdk/client-ses");
+const { MarketplaceMeteringClient, ResolveCustomerCommand } = require("@aws-sdk/client-marketplace-metering");
+const { DynamoDBClient, UpdateItemCommand } = require("@aws-sdk/client-dynamodb");
+
+const { NewSubscribersTableName: newSubscribersTableName, MarketplaceSellerEmail: marketplaceSellerEmail, AWS_REGION: aws_region } = process.env;
+
+const ses = new SESClient({ region: aws_region });
+const marketplacemetering = new MarketplaceMeteringClient({ region: aws_region });
+const dynamodb = new DynamoDBClient({ region: aws_region });
 
 const lambdaResponse = (statusCode, body) => ({
   statusCode,
@@ -43,12 +46,22 @@ const setBuyerNotificationHandler = function (contactEmail) {
     Source: marketplaceSellerEmail,
   };
 
-  return ses.sendEmail(params).promise()
-
-
+  // catch SES error. When SES fails to send an email
+  // to the email address the customer entered
+  // the registering page fails with internal error
+  // catching this error solves this internal error message
+  ses.send(new SendEmailCommand(params))
+    .then(result => {
+      return true
+    })
+    .catch(error => {
+      console.error('sending email via SES failed:', error);
+      return false
+    });
 };
 
 exports.registerNewSubscriber = async (event) => {
+  console.log('event:', JSON.stringify(event, null, 2));
   const {
     // Accept form inputs from ../web/index.html
     regToken, companyName, contactPerson, contactPhone, contactEmail,
@@ -57,56 +70,58 @@ exports.registerNewSubscriber = async (event) => {
   // Validate the request with form inputs from ../web/index.html
   if (regToken && companyName && contactPerson && contactPhone && contactEmail) {
     try {
-      // Call resolveCustomer to validate the subscriber
-      const resolveCustomerParams = {
-        RegistrationToken: regToken,
-      };
+      const resolveCustomerResponse = await marketplacemetering.send(
+        new ResolveCustomerCommand({ RegistrationToken: regToken })
+      );
 
-      const resolveCustomerResponse = await marketplacemetering
-        .resolveCustomer(resolveCustomerParams)
-        .promise();
+      console.log('resolveCustomerResponse:', JSON.stringify(resolveCustomerResponse, null, 2));
 
       // Store new subscriber data in dynamoDb
-      const { CustomerIdentifier, ProductCode, CustomerAWSAccountId } = resolveCustomerResponse;
+      // Get ProductCode, customerAwsAccountId and LicenseArn from Registration Token
+      const { ProductCode, CustomerAWSAccountId, LicenseArn } = resolveCustomerResponse;
 
       const datetime = new Date().getTime().toString();
 
       // Write form inputs from ../web/index.html
+      // Use UpdateItem to upsert (update if exists, create if doesn't)
       const dynamoDbParams = {
         TableName: newSubscribersTableName,
-        Item: {
-          companyName: { S: companyName },
-          contactPerson: { S: contactPerson },
-          contactPhone: { S: contactPhone },
-          contactEmail: { S: contactEmail },
-          customerIdentifier: { S: CustomerIdentifier },
-          productCode: { S: ProductCode },
-          customerAWSAccountID: { S: CustomerAWSAccountId },          
-          created: { S: datetime },
+        Key: {
+          customerIdentifier: { S: LicenseArn },
         },
+        UpdateExpression: 'set companyName = :cn, contactPerson = :cp, contactPhone = :cph, contactEmail = :ce, productCode = :pc, customerAwsAccountId = :caid, successfully_registered = :sr, updated_at = :ua',
+        ExpressionAttributeValues: {
+          ':cn': { S: companyName },
+          ':cp': { S: contactPerson },
+          ':cph': { S: contactPhone },
+          ':ce': { S: contactEmail },
+          ':pc': { S: ProductCode },
+          ':caid': { S: CustomerAWSAccountId },
+          ':sr': { BOOL: true },
+          ':ua': { S: new Date().toISOString() },
+        },
+        // Only set created timestamp if the item doesn't exist
+        ConditionExpression: 'attribute_not_exists(created)',
+        ReturnValues: 'UPDATED_NEW',
       };
 
-      await dynamodb.putItem(dynamoDbParams).promise();
-
-      // Only for SaaS Contracts, check entitlement
-      if (entitlementQueueUrl) {
-        const SQSParams = {
-          MessageBody: `{ 
-              "Type": "Notification", 
-              "Message" : {
-                  "action" : "entitlement-updated",
-                  "customer-identifier": "${CustomerIdentifier}",
-                  "product-code" : "${ProductCode}"
-                  } 
-              }`,
-          QueueUrl: entitlementQueueUrl,
-        };
-        await sqs.sendMessage(SQSParams).promise();
+      try {
+        console.log(`updating DynamoDB with dynamoDbParams: ${JSON.stringify(dynamoDbParams, null, 2)}`);
+        await dynamodb.send(new UpdateItemCommand(dynamoDbParams));
+        console.log('DynamoDB updated - new record created');
+      } catch (error) {
+        // If condition fails, it means the record exists, so update without the condition
+        if (error.name === 'ConditionalCheckFailedException') {
+          delete dynamoDbParams.ConditionExpression;
+          console.log('Record exists, updating existing record');
+          await dynamodb.send(new UpdateItemCommand(dynamoDbParams));
+          console.log('DynamoDB updated - existing record modified');
+        } else {
+          throw error;
+        }
       }
 
       await setBuyerNotificationHandler(contactEmail);
-
-
 
       return lambdaResponse(200, 'Success! Registration completed. You have purchased an enterprise product that requires some additional setup. A representative from our team will be contacting you within two business days with your account credentials. Please contact Support through our website if you have any questions.');
     } catch (error) {

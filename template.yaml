@@ -1,9 +1,14 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
-Description: "AWS Marketplace Serverless SaaS Integration Application"
+Description: "AWS Marketplace Serverless SaaS Integration Application (uksb-sbygl2ms53)"
 Globals:
   Function:
-    Timeout: 15
+    Timeout: 30
+    Tags:
+      StackName: !Ref AWS::StackName
+    Environment:
+      Variables:
+        LOG_LEVEL: "debug"
   Api:
     Cors:
       AllowMethods: "'POST,OPTIONS'"
@@ -36,20 +41,6 @@ Parameters:
       - contracts_with_subscription
       - contracts
       - subscriptions
-
-  SNSAccountID:
-    Type: String
-    Default: "287250355862"
-    Description: "This is the AWS account hosting the SNS Entitlement and Subscription topics for your product."
-    AllowedValues:
-      - "287250355862"
-
-  SNSRegion:
-      Type: String
-      Default: "us-east-1"
-      Description: "This is the AWS region of the SNS Entitlement and Subscription topics for your product."
-      AllowedValues: 
-        - us-east-1
 
   ProductId:
     Type: String
@@ -97,11 +88,6 @@ Parameters:
       - "false"
 
 Conditions:
-  CreateEntitlementLogic:
-    Fn::Or:
-      - !Equals [!Ref TypeOfSaaSListing, contracts_with_subscription]
-      - !Equals [!Ref TypeOfSaaSListing, contracts]
-
   CreateSubscriptionLogic:
     Fn::Or:
       - !Equals [!Ref TypeOfSaaSListing, contracts_with_subscription]
@@ -128,11 +114,11 @@ Resources:
     Type: AWS::IAM::Role
     Condition: CreateCrossAccount
     DependsOn: 
-     - AWSMarketplaceMeteringRecords 
-     - AWSMarketplaceSubscribers
+      - AWSMarketplaceMeteringRecords 
+      - AWSMarketplaceSubscribers
     Properties:
       RoleName:
-         !Join
+        !Join
           - '-'
           - - 'CrossAccountRoleName'
             - !Select 
@@ -159,7 +145,7 @@ Resources:
       Path: /
       Policies:
         - PolicyName:
-           !Join
+            !Join
             - '-'
             - - 'CrossAccountPolicy'
               - !Select 
@@ -224,17 +210,18 @@ Resources:
       StreamSpecification:
         StreamViewType: NEW_AND_OLD_IMAGES
   
+  # ---- Lambda Functions ----
+
   RegisterNewMarketplaceCustomer:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: src/
       Handler: register-new-subscriber.registerNewSubscriber
-      Runtime: nodejs22.x
+      Runtime: nodejs24.x
       Environment:
         Variables:
           NewSubscribersTableName: !Ref NewSubscribersTableName
-          EntitlementQueueUrl:
-            !If [CreateEntitlementLogic, !Ref EntitlementSQSQueue, !Ref AWS::NoValue]
+          EntitlementQueueUrl: !Ref EntitlementSQSQueue
           MarketplaceSellerEmail:
             !If [Buyernotificationemail, !Ref MarketplaceSellerEmail, !Ref AWS::NoValue]
       Policies:
@@ -246,15 +233,12 @@ Resources:
               Action:
                 - aws-marketplace:ResolveCustomer
               Resource: "*"
-        - !If
-          - CreateEntitlementLogic
-          - Statement:
-              - Sid: SQSPolicy
-                Effect: Allow
-                Action:
-                  - sqs:SendMessage
-                Resource: !GetAtt EntitlementSQSQueue.Arn
-          - !Ref "AWS::NoValue"
+        - Statement:
+            - Sid: SQSPolicy
+              Effect: Allow
+              Action:
+                - sqs:SendMessage
+              Resource: !GetAtt EntitlementSQSQueue.Arn
 
         - Statement:
             - Sid: Sendemail
@@ -269,21 +253,20 @@ Resources:
             Path: /subscriber
             Method: post
             RestApiId: !Ref ServerlessApi
-
+  
   EntitlementSQSQueue:
     Type: AWS::SQS::Queue
-    Condition: CreateEntitlementLogic
 
   EntitlementSQSHandler:
     Type: AWS::Serverless::Function
-    Condition: CreateEntitlementLogic
     Properties:
       CodeUri: src
       Handler: entitlement-sqs.handler
-      Runtime: nodejs22.x
+      Runtime: nodejs24.x
       Environment:
         Variables:
           NewSubscribersTableName: !Ref NewSubscribersTableName
+          PricingModel: !Ref TypeOfSaaSListing
       Policies:
         - DynamoDBWritePolicy:
             TableName: !Ref NewSubscribersTableName
@@ -293,46 +276,70 @@ Resources:
             - Sid: AWSMarketplaceEntitlements
               Effect: Allow
               Action:
+                - aws-marketplace:DescribeAgreement
+                - aws-marketplace:GetAgreementTerms
+                - aws-marketplace:DescribeEntity
                 - aws-marketplace:GetEntitlements
               Resource: "*"
       Events:
-        MySQSEvent:
-          Type: SNS
+        SQSTrigger:
+          Type: SQS
           Properties:
-            Topic:  !Sub 'arn:aws:sns:${SNSRegion}:${SNSAccountID}:aws-mp-entitlement-notification-${GetProductCode.ProductCode}'
-            Region: !Sub '${SNSRegion}'
-            SqsSubscription:
-              BatchSize: 1
-              QueueArn: !GetAtt EntitlementSQSQueue.Arn
-              QueueUrl: !Ref EntitlementSQSQueue
+            Queue: !GetAtt EntitlementSQSQueue.Arn
+            BatchSize: 1
 
-  SubscriptionSQSHandler:
-    Type: AWS::Serverless::Function
+  # EventBride notifications
+  # Execution role
+  EventBridgeExecutionRole:
+    Type: AWS::IAM::Role
     Properties:
-      CodeUri: src
-      Handler: subscription-sqs.SQSHandler
-      Runtime: nodejs22.x
-      Environment:
-        Variables:
-          NewSubscribersTableName: !Ref NewSubscribersTableName
-          SupportSNSArn: !Ref SupportSNSTopic
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action: sts:AssumeRole
       Policies:
-        - DynamoDBWritePolicy:
-            TableName: !Ref NewSubscribersTableName
-        - Statement:
-            - Sid: SNSPublish
-              Effect: Allow
-              Action:
-                - sns:Publish
-              Resource: !Ref SupportSNSTopic
-      Events:
-        MySQSEvent:
-          Type: SNS
-          Properties:
-            #Topic: !Ref SubscriptionSNSTopic
-            Topic:  !Sub 'arn:aws:sns:${SNSRegion}:${SNSAccountID}:aws-mp-subscription-notification-${GetProductCode.ProductCode}'
-            Region: !Sub '${SNSRegion}'
-            SqsSubscription: true
+        - PolicyName: SQSPublishPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: sqs:SendMessage
+                Resource:
+                  - !GetAtt EntitlementSQSQueue.Arn
+
+  # Log groups
+  LicenseEventsLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/events/mp-saas-license-${AWS::StackName}"
+
+  MarketplaceSellerLicense:
+    Type: AWS::Events::Rule
+    Properties:
+      EventBusName: default
+      EventPattern:
+        source: ["aws.agreement-marketplace"]
+        detail-type:
+          - "License Updated - Manufacturer"
+          - "License Deprovisioned - Manufacturer"
+          - "License Updated - Proposer"
+          - "License Deprovisioned - Proposer"
+        detail:
+          product:
+            id:
+              - !Ref ProductId
+      Targets:
+        - Arn: !GetAtt EntitlementSQSQueue.Arn
+          RoleArn: !GetAtt EventBridgeExecutionRole.Arn
+          Id: "SQSTarget"
+        - Arn: !GetAtt LicenseEventsLogGroup.Arn
+          Id: "LogsTarget"
+      Tags:
+        - Key: "StackName"
+          Value: !Ref AWS::StackName
 
   SupportSNSTopic:
     Type: AWS::SNS::Topic
@@ -346,11 +353,10 @@ Resources:
     Properties:
       CodeUri: src
       Handler: grant-revoke-access-to-product.dynamodbStreamHandler
-      Runtime: nodejs22.x
+      Runtime: nodejs24.x
       Environment:
         Variables:
           SupportSNSArn: !Ref SupportSNSTopic
-          LOG_LEVEL: "info"
       Policies:
         - AWSLambdaDynamoDBExecutionRole
         - Statement:
@@ -373,7 +379,7 @@ Resources:
     Properties:
       CodeUri: src
       Handler: metering-hourly-job.job
-      Runtime: nodejs22.x
+      Runtime: nodejs24.x
       Environment:
         Variables:
           SQSMeteringRecordsUrl: !Ref SQSMeteringRecords
@@ -388,20 +394,7 @@ Resources:
           Type: Schedule
           Properties:
             Schedule: "rate(1 hour)"
-            Name:
-             !Join
-              - '-'
-              - - 'MeteringSchedule'
-                - !Select 
-                  - 0
-                  - !Split 
-                    - "-"
-                    - !Select
-                      - 2
-                      - !Split
-                        - "/"
-                        - !Ref AWS::StackId
-            Description: SaaS Metering
+            Description: !Sub SaaS metering schedule for stack ${AWS::StackName}
             Enabled: true
 
   SQSMeteringRecords:
@@ -431,14 +424,17 @@ Resources:
     Properties:
       CodeUri: src
       Handler: metering-sqs.handler
-      Runtime: nodejs22.x
+      Runtime: nodejs24.x
       Environment:
         Variables:
           ProductCode: !GetAtt GetProductCode.ProductCode
           AWSMarketplaceMeteringRecordsTableName: !Ref AWSMarketplaceMeteringRecordsTableName
+          NewSubscribersTableName: !Ref NewSubscribersTableName
       Policies:
         - DynamoDBWritePolicy:
             TableName: !Ref AWSMarketplaceMeteringRecordsTableName
+        - DynamoDBReadPolicy:
+            TableName: !Ref NewSubscribersTableName
         - Statement:
             - Sid: AWSMarketplaceMetering
               Effect: Allow
@@ -503,7 +499,7 @@ Resources:
     Type: AWS::Serverless::Function
     Condition: CreateWeb
     Properties:
-      Runtime: nodejs22.x
+      Runtime: nodejs24.x
       CodeUri: src/
       Handler: redirect.redirecthandler
       AssumeRolePolicyDocument:
@@ -514,9 +510,6 @@ Resources:
             Principal:
               Service:
                 - "lambda.amazonaws.com"
-      Environment:
-        Variables:
-          RedirectUrl: https://aws-ia.github.io/cloudformation-aws-marketplace-saas/#_post_deployment_steps
       Events:
         RedirectMarketplaceToken:
           Type: Api
@@ -683,7 +676,7 @@ Resources:
               <label for="contactEmail" class="sr-only">Email address</label>
               <input type="email" name="contactEmail" class="form-control" placeholder="Email address" required autofocus>
               <button class="btn btn-lg btn-primary btn-block" type="submit">Register</button>
-              <p class="mt-5 mb-3 text-muted">&copy; 2024</p>
+              <p class="mt-5 mb-3 text-muted">&copy; <script>document.write(new Date().getFullYear())</script> </p>
             </form>
           </div>
           <!-- Optional JavaScript -->
@@ -876,6 +869,10 @@ Resources:
               } catch (e) {
                 console.error(`Failed to delete object: ${e.message}`);
               }
+            } else if (event.RequestType === 'Update') {
+              console.log("Update RequestType received");
+              console.log("No update will be done on the web s3 bucket to preserve current S3 bucket branded registration pages");
+              responseStatus = "SUCCESS";
             } else {
               const body = typeof event.ResourceProperties.IsBase64Encoded == "string" && event.ResourceProperties.IsBase64Encoded.toLowerCase() == "true" ? Buffer.from(event.ResourceProperties.Body, 'base64') : event.ResourceProperties.Body;
               console.log(`Saving s3://${event.ResourceProperties.BucketName}/${event.ResourceProperties.Key}`);
@@ -961,7 +958,7 @@ Resources:
                   - !Ref AWS::StackId
       Handler: index.handler
       Role: !GetAtt S3ContentCustomResourceRole.Arn
-      Runtime: nodejs22.x
+      Runtime: nodejs24.x
   # Role for custom Lambda function to log activity and put/delete objects in S3 bucket created in this template
   S3ContentCustomResourceRole:
     Type: AWS::IAM::Role
@@ -1018,7 +1015,6 @@ Resources:
                 - !Split
                   - "/"
                   - !Ref AWS::StackId
-      RetentionInDays: 7
   
   GetProductCode:
     Type: Custom::Lambda
@@ -1030,7 +1026,7 @@ Resources:
     Type: AWS::Lambda::Function
     Properties:
       Role: !GetAtt CAPILambdasExecutionRole.Arn
-      Runtime: nodejs22.x
+      Runtime: nodejs24.x
       Handler: index.handler
       Code: 
         ZipFile: |
@@ -1115,14 +1111,14 @@ Resources:
     Type: AWS::Lambda::Function
     Properties:
       Role: !GetAtt CAPILambdasExecutionRole.Arn
-      Runtime: nodejs22.x
+      Runtime: nodejs24.x
       Handler: index.handler
       Code: 
         ZipFile: |
           const { MarketplaceCatalogClient, DescribeEntityCommand, StartChangeSetCommand } = require("@aws-sdk/client-marketplace-catalog");
           const response = require('cfn-response');
           exports.handler = async (event, context) => {
-            console.log("REQUEST RECEIVED:\n" + JSON.stringify(event));
+            console.log("event:\n" + JSON.stringify(event));
             const client = new MarketplaceCatalogClient({ region: 'us-east-1' });
             const productId = event.ResourceProperties.ProductId;
             const fulfillmentUrl = event.ResourceProperties.FulfillmentUrl;
@@ -1136,7 +1132,6 @@ Resources:
                     });
                     let resp = await client.send(command);
                     console.debug("DescribeEntityCommand:\n" + JSON.stringify(resp));
-                    
                     
                     const fulfillmentUrlID = resp.DetailsDocument.Versions[0].DeliveryOptions[0].Id
                     console.debug("FullfilmentId:\n" + fulfillmentUrlID);
@@ -1164,7 +1159,8 @@ Resources:
                           },
                           Details: JSON.stringify(details)
                         }
-                      ]
+                      ],
+                      ChangeSetName: `Serverless SaaS Deployment: update fulfillment URL for product ${productId}`.substring(0, 99),
                     };
                     console.debug("startChangeSetInput:\n" + JSON.stringify(startChangeSetInput));
                     

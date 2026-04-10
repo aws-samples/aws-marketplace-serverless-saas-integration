@@ -5,3 +5,6 @@ node_modules
 packaged.yaml
 deploy.sh
 *.toml
+archive
+src/build.log
+.venv
