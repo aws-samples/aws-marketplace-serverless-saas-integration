@@ -1,0 +1,139 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: To be used with the AWS Marketplace SaaS integration - https://github.com/aws-samples/aws-marketplace-serverless-saas-integration. Creates an Amazon S3 Bucket, AWS Lambda function and IAM Role to allow manual metering record upload via CSV file.
+Parameters:
+  DynamoDBMeteringTableName:
+    Type: String
+    Description: Input the name of the DynamoDB table used for metering records (default - AWSMarketplaceMeteringRecords)
+    AllowedPattern: '.+'
+Resources:
+  S3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      LifecycleConfiguration:
+        Rules:
+          - Status: Enabled
+            ExpirationInDays: 1
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Path: /
+      Policies:
+        - PolicyName: DynamoDBPutItem
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'dynamodb:PutItem'
+                Resource:
+                  - !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBMeteringTableName}'
+        - PolicyName: S3GetObject
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 's3:GetObject*'
+                Resource:
+                  - !Sub 'arn:aws:s3:::${S3Bucket}/*'
+  LambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: python3.12
+      Handler: index.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Timeout: 60
+      Code:
+        ZipFile: !Sub |
+          import json
+          import boto3
+          import csv
+          import time
+          
+          
+          def lambda_handler(event, context):
+              s3 = boto3.client('s3')
+              dynamodb = boto3.client('dynamodb')
+          
+              # For each record in the event
+              print(event)
+              for record in event['Records']:
+                  bucket = record['s3']['bucket']['name']
+                  key = record['s3']['object']['key']
+                  tmp_path = '/tmp/' + key
+          
+                  # Download the CSV file from S3 to a local temporary file
+                  s3.download_file(bucket, key, tmp_path)
+          
+                  dimension_usage = []
+          
+                  # Parse the CSV file
+                  with open(tmp_path) as csv_file:
+                      csv_reader = csv.reader(csv_file, delimiter=',')
+                      row_count = 0
+          
+                      for row in csv_reader:
+                          if row_count != 0:
+                              # print(row)
+                              dimension_usage_map = {
+                                  "M": {
+                                      "dimension": {
+                                          "S": row[0]
+                                      },
+                                      "value": {
+                                          "S": row[1]
+                                      }
+                                  }
+                              }
+                              dimension_usage.append(dimension_usage_map)
+                          row_count += 1
+          
+                  # Get current epoch timestamp
+                  epoch_time = round(time.time())
+          
+                  # Create a DynamoDB item with the parsed data
+                  dynamodb_item = {
+                      "create_timestamp": {
+                          "N": str(epoch_time)
+                      },
+                      "customerIdentifier": {
+                          "S": key[:-4]
+                      },
+                      "dimension_usage": {
+                          "L": dimension_usage
+                      },
+                      "metering_pending": {
+                          "S": "true"
+                      }
+                  }
+          
+                  # Write the DynamoDB item to DynamoDB
+                  response = dynamodb.put_item(
+                      TableName='${DynamoDBMeteringTableName}',
+                      Item=dynamodb_item
+                  )
+                  print(response)
+          
+              return {
+                  'statusCode': 200,
+                  'body': json.dumps(dynamodb_item)
+              }
+
+Outputs:
+  BucketName:
+    Description: Name of the S3 bucket
+    Value: !Ref S3Bucket
+  LambdaFunctionArn:
+    Description: ARN of the Lambda function
+    Value: !GetAtt LambdaFunction.Arn
