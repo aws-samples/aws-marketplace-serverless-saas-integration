@@ -100,10 +100,19 @@ Conditions:
 
 Resources:
 
+  ServerlessApiAccessLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/apigateway/mp-saas-serverless-api-${AWS::StackName}"
+      RetentionInDays: 365
+
   ServerlessApi:
     Type: AWS::Serverless::Api
     Properties:
       StageName: Prod
+      AccessLogSetting:
+        DestinationArn: !GetAtt ServerlessApiAccessLogGroup.Arn
+        Format: '{"requestId":"$context.requestId","ip":"$context.identity.sourceIp","requestTime":"$context.requestTime","httpMethod":"$context.httpMethod","routeKey":"$context.routeKey","status":"$context.status","protocol":"$context.protocol","responseLength":"$context.responseLength"}'
       MethodSettings:
         - ResourcePath: /subscriber
           HttpMethod: POST, OPTIONS
@@ -458,12 +467,30 @@ Resources:
     Condition: CreateWeb
     Properties:
       BucketName: !Ref WebsiteS3BucketName
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      LoggingConfiguration:
+        DestinationBucketName: !Join ["-", [!Ref WebsiteS3BucketName, "log"]]
+        LogFilePrefix: "access-logs"
 
   WebsiteS3BucketLog:
     Type: AWS::S3::Bucket
     Condition: CreateWeb
+    Metadata:
+      checkov:
+        skip:
+          - id: "CKV_AWS_18"
+            comment: "Target bucket for access logs; logging on the target bucket is not required to minimize circular references (CQP approved exception, AppSec V2244519294)"
     Properties:
       BucketName: !Join ["-", [!Ref WebsiteS3BucketName, "log"]]
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
       OwnershipControls:
         Rules:
           - ObjectOwnership: BucketOwnerPreferred
