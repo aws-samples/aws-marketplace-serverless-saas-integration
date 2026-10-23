@@ -50,7 +50,7 @@ const setBuyerNotificationHandler = function (contactEmail) {
   // to the email address the customer entered
   // the registering page fails with internal error
   // catching this error solves this internal error message
-  ses.send(new SendEmailCommand(params))
+  return ses.send(new SendEmailCommand(params))
     .then(result => {
       return true
     })
