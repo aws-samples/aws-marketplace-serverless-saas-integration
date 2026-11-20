@@ -1,0 +1,10 @@
+{
+  "//": "Recorded built-in @aws-sdk/client-marketplace-agreement version per Lambda Node.js runtime, as measured by the scripts/lambda probe. scripts/prepare-sdk.js reads this to decide runtime vs bundled. Refresh with: cd scripts/lambda && ./deploy.sh && ./invoke.sh, then update the matching runtime below. 'commandExported' records whether GetAgreementContactsCommand was present.",
+  "threshold": "3.1171.0",
+  "runtimes": {
+    "nodejs24.x": { "sdkVersion": "3.1105.0", "commandExported": false, "measuredAt": "2025-11-18" },
+    "nodejs22.x": { "sdkVersion": "3.1105.0", "commandExported": false, "measuredAt": "2025-11-18" },
+    "nodejs20.x": { "sdkVersion": "3.895.0", "commandExported": false, "measuredAt": "2025-11-18" },
+    "nodejs18.x": { "sdkVersion": "3.895.0", "commandExported": false, "measuredAt": "2025-11-18" }
+  }
+}

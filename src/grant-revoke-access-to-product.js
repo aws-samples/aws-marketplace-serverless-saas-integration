@@ -19,7 +19,7 @@ function formatMessage(message) {
 
 
 exports.dynamodbStreamHandler = async (event, context) => {
-  logger.debug({"event" : event});
+  logger.debug({ "message": "Stream batch", "records": event.Records.length });
   //console.log({ "message" : "Event parameter" , "data" : event});
   await Promise.all(event.Records.map(async (record) => {
     logger.defaultMeta = { requestId: context.awsRequestId };
@@ -27,8 +27,8 @@ exports.dynamodbStreamHandler = async (event, context) => {
     const newImage = record.dynamodb.NewImage ? unmarshall(record.dynamodb.NewImage) : {};
 
     // eslint-disable-next-line no-console
-    logger.debug( {"message" : "OldImage", "data": oldImage });
-    logger.debug( {"message" : "NewImage", "data": newImage });
+    // The images hold the subscriber record (buyer contact PII): never log them.
+    logger.debug({ "message": "Stream record", "eventName": record.eventName });
     
     if (!oldImage || Object.keys(oldImage).length === 0 || !newImage || Object.keys(newImage).length === 0) {
       logger.info('Skipping record - oldImage or newImage is empty');
@@ -91,7 +91,6 @@ exports.dynamodbStreamHandler = async (event, context) => {
       };
 
       logger.info('Sending notification');
-      logger.debug('SNSparams', { 'data': SNSparams });
       await sns.send(new PublishCommand(SNSparams));
     }
   }));

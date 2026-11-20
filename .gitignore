@@ -3,8 +3,21 @@ node_modules
 .aws-sam
 .DS_Store
 packaged.yaml
-deploy.sh
-*.toml
+/deploy.sh
+# SAM CLI local deploy settings (account/region specific).
+samconfig*.toml
 archive
 src/build.log
 .venv
+
+# SDK tarballs are generated into src/vendor by scripts/prepare-sdk.js when the
+# bundled strategy is selected. Keep src/vendor/README.md tracked; the .tgz are
+# build output and are not committed.
+src/vendor/*.tgz
+
+# Built by scripts/lambda/deploy.sh.
+scripts/lambda/function.zip
+
+# Python bytecode.
+__pycache__/
+*.py[cod]

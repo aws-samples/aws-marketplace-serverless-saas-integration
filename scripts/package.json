@@ -1,0 +1,9 @@
+{
+  "name": "get-agreement-contact-probe",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Standalone probe: test GetAgreementContacts against the public AWS SDK for JavaScript v3.",
+  "dependencies": {
+    "@aws-sdk/client-marketplace-agreement": "^3.1171.0"
+  }
+}

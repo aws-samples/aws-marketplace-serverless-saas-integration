@@ -8,6 +8,9 @@ phases:
   pre_build:
     commands:
       - npm install aws-cli-js
+      # Buyer Contact: select SDK strategy (runtime vs bundled) before sam build.
+      # Must run before `sam build` so src/package.json / src/vendor are correct.
+      - node scripts/prepare-sdk.js
       - echo "${CODEBUILD_WEBHOOK_TRIGGER}"
       - echo "${AWSMarketplaceMeteringRecordsTableName}"
       - echo "${MarketplaceTechAdminEmail}"

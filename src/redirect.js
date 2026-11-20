@@ -1,11 +1,10 @@
 // redirect.js
 // redirects to signup page and includes registration token in the URL
+// Do not log the event or the redirect URL: both contain the registration token.
 //const redirectToProductPage = process.env.VARIABLE_NAME || 'false';
 
 exports.redirecthandler = async (event) => {
-  console.log("event:", event);
   const redirectUrl = "/?" + event['body'];
-  console.log("redirectUrl:", redirectUrl);
 
   const response = {
       statusCode: 302,

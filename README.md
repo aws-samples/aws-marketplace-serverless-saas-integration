@@ -2,6 +2,11 @@
 
 ![](misc/banner.png)
 
+> [**UPDATE November 2026 — Buyer Contact supported (deployment process changed)**]
+> Buyer Contact is now supported by this solution. The buyer-provided **contact details** (first name, last name, email, company, country) that AWS Marketplace captures as an immutable Profile Snapshot on the agreement are retrieved with the **`GetAgreementContacts`** operation on the AWS Marketplace Agreement Service, persisted on the subscriber record, and used to pre-fill the registration page. See [Buyer Contact](#buyer-contact) and the [Buyer Contact documentation](https://docs.aws.amazon.com/marketplace/latest/userguide/receiving-buyer-contact-information.html).
+>
+> **This requires one extra step in the deployment process.** The AWS SDK version that exposes `GetAgreementContacts` may be newer than the one bundled in the AWS Lambda Node.js runtime, so a prebuild step decides whether to rely on the runtime SDK or bundle the current public SDK with the functions. **Run `node scripts/prepare-sdk.js` before `sam build`** — see [Deploying the sample application using the SAM CLI](#deploying-the-sample-application-using-the-sam-cli). No source or handler changes are needed.
+
 > [**UPDATE April 2026 EventBridge notifications**]
 > The serverless integration for SaaS products has been updated to use [Amazon EventBridge notifications](https://docs.aws.amazon.com/marketplace/latest/userguide/saas-eventbridge-integration.html). License events are processed via EventBridge rules and SQS queues. The solution no longer uses Amazon SNS topics from AWS Marketplace for notifications. All lifecycle events are handled by [EventBridge license events](https://docs.aws.amazon.com/marketplace/latest/userguide/notifications-eventbridge.html#events-for-licenses).
 
@@ -31,6 +36,7 @@ The sample in this repository demonstrates how to use AWS SAM (Serverless applic
 - [Register new customers](#register-new-customers)
 - [Grant and revoke access to your product](#grant-and-revoke-access-to-your-product)
 - [Metering for usage](#metering-for-usage)
+- [Buyer Contact](#buyer-contact)
 - [Deploying the sample application using Serverless Application Model Command Line Interface (SAM CLI)](#)
 
 
@@ -43,7 +49,7 @@ When creating your product, you provide a URL to your registration landing page.
 The registration landing page needs to be able to identify and accept the `x-amzn-marketplace-token` token in the form data from AWS Marketplace. Your landing page calls the [ResolveCustomer API](https://docs.aws.amazon.com/marketplace/latest/APIReference/API_marketplace-metering_ResolveCustomer.html) to get and persist **LicenseArn**, **CustomerAWSAccountId** and **ProductCode**. You use the **LicenseArn** and **CustomerAWSAccountId** for usage based billing. By using the **LicenseArn** you can meter product usage that have a **Concurrent Agreement**.
 
 
-![](misc/saas_product_setup_account.gif)
+![](misc/setup_account_and_registration.gif)
 
 > NOTE: Deploying the static landing page is optional.
 You can choose to use your existing SaaS registration page, after collecting the data you should call the register new subscriber endpoint. Please see the deployment section.
@@ -164,6 +170,85 @@ After the record is submitted to AWS Marketplace BatchMeterUsage API, it will be
 }
 ```
 
+## Buyer Contact
+
+> **Supported since November 2026.** Buyer Contact uses the `GetAgreementContacts` operation on the
+> AWS Marketplace Agreement Service, available in the public AWS SDK. Deployment requires the
+> `node scripts/prepare-sdk.js` prebuild step described in
+> [Deploying the sample application using the SAM CLI](#deploying-the-sample-application-using-the-sam-cli).
+> See the Buyer Contact documentation (*link to be added*).
+
+When a buyer subscribes, the contact details they provide (first name, last name, email, company,
+country) are stored by AWS Marketplace as an **immutable, point-in-time Profile Snapshot** on the
+agreement. The solution retrieves those details with the **`GetAgreementContacts`** operation on the
+AWS Marketplace Agreement Service (region **us-east-1**, commercial partition only) and persists them
+on the subscriber record. On SaaS public offers and EPOs the snapshot is always present; for private
+offers or agreements that predate the feature it may be absent, which the solution handles gracefully.
+
+Buyer-contact retrieval is **additive and non-blocking**: a missing contact or any API error never
+breaks registration, entitlement, or metering flows. Treat all returned values as untrusted,
+buyer-supplied input, and **verify the email yourself** — AWS does not verify it.
+
+### What gets stored
+
+The following attribute is added to the subscriber record in the `AWSMarketplaceSubscribers`
+DynamoDB table (keyed on `customerIdentifier` = License ARN). DynamoDB is schemaless, so no table
+change is required.
+
+| Attribute | Meaning |
+|-----------|---------|
+| `buyerContact` | The immutable Marketplace snapshot, stored as JSON: `firstName`, `lastName`, `emailAddress`, `companyName`, `countryCode`. `NULL` when the buyer opted out or no snapshot exists. |
+
+The existing seller form fields (`companyName`, `contactPerson`, `contactPhone`, `contactEmail`) are
+unchanged and are **never** overwritten by the buyer-contact logic.
+
+### Implementation
+
+There are two retrieval paths:
+
+- **Synchronous (primary)** — `src/register-new-subscriber.js`. After `ResolveCustomer`, the handler
+  calls `GetAgreementContacts` with the returned `AgreementId` and writes `buyerContact`
+  alongside the form fields and sets `successfully_registered = true`.
+- **Asynchronous (back-fill)** — `src/entitlement-sqs.js`. Marketplace License events delivered via
+  EventBridge → SQS already carry the `agreementId`. The handler uses it to back-fill the contact
+  for agreements where the sync path was skipped or failed.
+
+#### Registration page pre-fill
+
+A new `GET /contact` endpoint (handler `src/get-buyer-contact.js`) resolves the
+`x-amzn-marketplace-token` **server-side** and returns only the buyer-facing contact fields. The
+static registration page calls it on load and pre-fills the form (Contact person, Email, Company, and
+a new **Country** field) so the buyer can confirm instead of re-typing. `Contact phone` is **not**
+part of the snapshot and is still collected on the form. No identifiers are returned to the browser;
+the submit path (`POST /subscriber`) re-resolves the token itself.
+
+#### Concurrency & write-ordering
+
+Two writers update the same record: the sync registration path and the async EventBridge path. AWS
+does not guarantee their order, so the back-fill is designed to never clobber registered values:
+
+- `buyerContact` is an immutable snapshot, so refreshing it from either path is idempotent.
+- When the sync path gets no contact back, it only initialises `buyerContact` to `NULL` with
+  `if_not_exists`, so it never overwrites a snapshot the async path already back-filled.
+- The async path never touches the seller's form fields.
+
+This is safe in both orders (register-then-event and event-then-register).
+
+### IAM
+
+Each Lambda that calls the operation is granted `aws-marketplace:GetAgreementContacts`:
+`RegisterNewMarketplaceCustomer`, `EntitlementSQSHandler`, and the pre-fill `GetBuyerContact`
+function (which additionally has `aws-marketplace:ResolveCustomer`). The action is not
+resource-scoped, so `Resource: "*"` is used, matching the existing `ResolveCustomer` / entitlement
+statements.
+
+### Data handling
+
+The snapshot is immutable and point-in-time; it can go stale, and there is no update push.
+Store contact data securely and in line with applicable data-protection regulations. AWS retains it
+only for the duration of the agreement and deletes it when the buyer unsubscribes or closes the
+account — mirror that lifecycle in your datastore where feasible.
+
 ## Deploying the sample application using the SAM CLI
 
 The Serverless Application Model Command Line Interface (SAM CLI) is an extension of the AWS CLI that adds functionality for building and testing Lambda applications. To learn more about SAM, visit the [AWS SAM developer guide](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html).
@@ -203,13 +288,33 @@ To build and deploy your application for the first time, complete the following 
   cd aws-marketplace-serverless-saas-integration
   ```
 
-4. Build the application using SAM. 
+4. Build the application. Buyer Contact needs a prebuild step (`scripts/prepare-sdk.js`) that inspects the AWS SDK version available in the target AWS Lambda runtime and chooses how the Buyer Contact clients (`@aws-sdk/client-marketplace-agreement`, `@aws-sdk/client-marketplace-metering`) are provided:
+
+  - if the runtime's built-in SDK is new enough, nothing is bundled (the runtime SDK is used);
+  - otherwise the current public SDK is packed into `src/vendor/` and bundled with the functions.
+
+  Use the provided `Makefile`, which runs the prebuild and then `sam build` so the step is never skipped:
 
   ```bash
+  make build
+  ```
+
+  Equivalently, run the two commands yourself:
+
+  ```bash
+  node scripts/prepare-sdk.js
   sam build
   ```
 
-5. Deploy the application using the SAM guided experience.
+  The prebuild writes `src/package.json` for the chosen strategy. Re-run it whenever you change the Lambda runtime or want to re-evaluate the decision. For details and overrides (e.g. `FORCE_SDK_STRATEGY`), see [`scripts/README.md`](scripts/README.md).
+
+5. Deploy the application using the SAM guided experience. `make deploy-guided` runs the prebuild and `sam build`, then `sam deploy --guided`.
+
+  ```bash
+  make deploy-guided
+  ```
+
+  Equivalently, after `make build`:
 
   ```bash
   sam deploy --guided --capabilities CAPABILITY_NAMED_IAM
@@ -299,7 +404,8 @@ helper/empty-log-bucket.sh <stack-name>
 To delete the sample application that you created, first empty the log bucket, then delete the stack:
 
 ```bash
-helper/empty-log-bucket.sh <stack-name>
+cd helper
+./empty-log-bucket.sh <stack-name>
 aws cloudformation delete-stack --stack-name <stack-name>
 ```
 
