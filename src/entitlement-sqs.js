@@ -128,13 +128,12 @@ async function getBuyerContact(agreementId) {
   }
 }
 
-// Back-fill the agreement id and buyer contact onto the subscriber record
-// (keyed on customerIdentifier = License ARN) without disturbing the sync path.
+// Back-fill the buyer contact onto the subscriber record (keyed on
+// customerIdentifier = License ARN) without disturbing the sync path.
 //
-// The agreementId comes from the EventBridge event (detail.agreement.id), so it
-// is available even when ResolveCustomer (sync path) cannot yet return it. It is
-// written unconditionally so mp_agreementId is populated regardless of whether
-// GetAgreementContacts is available or returns a contact.
+// The agreementId comes from the EventBridge event (detail.agreement.id), so the
+// contact can be retrieved even when the sync registration path was skipped or
+// failed. Nothing is written when no contact is returned.
 //
 // Concurrency rules for the buyer contact (see integration skill doc §3E):
 //   - buyerContact (immutable snapshot) is refreshed unconditionally; writes are
@@ -145,37 +144,31 @@ async function getBuyerContact(agreementId) {
 // Never touches the seller's form fields.
 async function backfillBuyerContact(licenseArn, agreementId) {
   const buyerContact = await getBuyerContact(agreementId);
-  const rawContact = buyerContact ? { S: JSON.stringify(buyerContact) } : null;
-
-  // 1) Always persist mp_agreementId (and buyerContact when we have one).
-  //    These are safe to write regardless of registration state: mp_agreementId
-  //    from the event is stable and buyerContact is an immutable snapshot.
-  const unconditionalValues = { ':aid': { S: agreementId || '' } };
-  let unconditionalExpr = 'SET mp_agreementId = :aid';
-  if (rawContact) {
-    unconditionalExpr += ', buyerContact = :bc, buyerContactSource = :bcs';
-    unconditionalValues[':bc'] = rawContact;
-    unconditionalValues[':bcs'] = { S: 'AWS_MARKETPLACE_BUYER_CONTACT' };
+  if (!buyerContact) {
+    return;
   }
+  const rawContact = { S: JSON.stringify(buyerContact) };
 
+  // 1) Persist buyerContact. Safe to write regardless of registration state:
+  //    buyerContact is an immutable snapshot.
   try {
     await dynamodb.send(new UpdateItemCommand({
       TableName: newSubscribersTableName,
       Key: { customerIdentifier: { S: licenseArn } },
-      UpdateExpression: unconditionalExpr,
-      ExpressionAttributeValues: unconditionalValues,
+      UpdateExpression: 'SET buyerContact = :bc, buyerContactSource = :bcs',
+      ExpressionAttributeValues: {
+        ':bc': rawContact,
+        ':bcs': { S: 'AWS_MARKETPLACE_BUYER_CONTACT' },
+      },
     }));
-    logger.info(`Agreement id (and buyer contact if present) back-filled for ${licenseArn}`);
+    logger.info(`Buyer contact back-filled for ${licenseArn}`);
   } catch (error) {
-    logger.error(`Failed to back-fill agreement id for ${licenseArn}: ${error.name} ${error.message}`);
+    logger.error(`Failed to back-fill buyer contact for ${licenseArn}: ${error.name} ${error.message}`);
   }
 
-  // 2) Seed effectiveContact only when a contact exists AND registration has not
-  //    yet run. The ConditionExpression is the primary guard; if_not_exists is an
-  //    atomic backstop against clobbering an existing working copy.
-  if (!rawContact) {
-    return;
-  }
+  // 2) Seed effectiveContact only when registration has not yet run. The
+  //    ConditionExpression is the primary guard; if_not_exists is an atomic
+  //    backstop against clobbering an existing working copy.
   try {
     await dynamodb.send(new UpdateItemCommand({
       TableName: newSubscribersTableName,

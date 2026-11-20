@@ -143,7 +143,7 @@ exports.registerNewSubscriber = async (event) => {
         Key: {
           customerIdentifier: { S: LicenseArn },
         },
-        UpdateExpression: 'set companyName = :cn, contactPerson = :cp, contactPhone = :cph, contactEmail = :ce, countryCode = :cc, productCode = :pc, customerAwsAccountId = :caid, successfully_registered = :sr, updated_at = :ua, mp_agreementId = :aid, buyerContact = :bc, effectiveContact = :bc, buyerContactSource = :bcs',
+        UpdateExpression: 'set companyName = :cn, contactPerson = :cp, contactPhone = :cph, contactEmail = :ce, countryCode = :cc, productCode = :pc, customerAwsAccountId = :caid, successfully_registered = :sr, updated_at = :ua, buyerContact = :bc, effectiveContact = :bc, buyerContactSource = :bcs',
         ExpressionAttributeValues: {
           ':cn': { S: companyName },
           ':cp': { S: contactPerson },
@@ -157,7 +157,6 @@ exports.registerNewSubscriber = async (event) => {
           // Buyer contact: the sync path is authoritative for effectiveContact
           // and seeds both buyerContact (immutable snapshot) and effectiveContact
           // (mutable working copy) from the same raw snapshot.
-          ':aid': { S: AgreementId || "" },
           ':bc': rawContact,
           ':bcs': { S: buyerContact ? "AWS_MARKETPLACE_BUYER_CONTACT" : "NONE" },
         },

@@ -197,7 +197,6 @@ change is required.
 
 | Attribute | Meaning |
 |-----------|---------|
-| `mp_agreementId` | The agreement id. Written by the sync path from `ResolveCustomer` and by the async path from the EventBridge event (`detail.agreement.id`). |
 | `buyerContact` | The pristine, immutable Marketplace snapshot (reference / audit copy), stored as JSON: `firstName`, `lastName`, `emailAddress`, `companyName`, `countryCode`. |
 | `effectiveContact` | The working copy, seeded from the same snapshot. This is the attribute you may mutate later (e.g. after email verification). |
 | `buyerContactSource` | `AWS_MARKETPLACE_BUYER_CONTACT` when a snapshot was retrieved, `NONE` when the buyer opted out or no snapshot exists. |
@@ -211,11 +210,11 @@ There are two retrieval paths:
 
 - **Synchronous (primary)** — `src/register-new-subscriber.js`. After `ResolveCustomer`, the handler
   calls `GetAgreementContacts` with the returned `AgreementId` and writes `buyerContact`,
-  `effectiveContact`, `buyerContactSource`, and `mp_agreementId` alongside the form fields. This path
+  `effectiveContact`, and `buyerContactSource` alongside the form fields. This path
   is authoritative for `effectiveContact` and sets `successfully_registered = true`.
 - **Asynchronous (back-fill)** — `src/entitlement-sqs.js`. Marketplace License events delivered via
-  EventBridge → SQS already carry the `agreementId`. The handler always persists `mp_agreementId`
-  from the event and back-fills the contact for agreements where the sync path was skipped or failed.
+  EventBridge → SQS already carry the `agreementId`. The handler uses it to back-fill the contact
+  for agreements where the sync path was skipped or failed.
 
 #### Registration page pre-fill
 
