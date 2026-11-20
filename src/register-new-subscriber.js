@@ -143,7 +143,12 @@ exports.registerNewSubscriber = async (event) => {
         Key: {
           customerIdentifier: { S: LicenseArn },
         },
-        UpdateExpression: 'set companyName = :cn, contactPerson = :cp, contactPhone = :cph, contactEmail = :ce, countryCode = :cc, productCode = :pc, customerAwsAccountId = :caid, successfully_registered = :sr, updated_at = :ua, buyerContact = :bc, effectiveContact = :bc, buyerContactSource = :bcs',
+        // buyerContact is an immutable snapshot. When one was retrieved, write it.
+        // When none was (opt-out, or GetAgreementContacts failed), only initialise
+        // the attribute to NULL so a snapshot already back-filled by the async
+        // EventBridge path (entitlement-sqs.js) is never clobbered.
+        UpdateExpression: 'set companyName = :cn, contactPerson = :cp, contactPhone = :cph, contactEmail = :ce, countryCode = :cc, productCode = :pc, customerAwsAccountId = :caid, successfully_registered = :sr, updated_at = :ua, '
+          + (buyerContact ? 'buyerContact = :bc' : 'buyerContact = if_not_exists(buyerContact, :bc)'),
         ExpressionAttributeValues: {
           ':cn': { S: companyName },
           ':cp': { S: contactPerson },
@@ -154,11 +159,8 @@ exports.registerNewSubscriber = async (event) => {
           ':caid': { S: CustomerAWSAccountId },
           ':sr': { BOOL: true },
           ':ua': { S: new Date().toISOString() },
-          // Buyer contact: the sync path is authoritative for effectiveContact
-          // and seeds both buyerContact (immutable snapshot) and effectiveContact
-          // (mutable working copy) from the same raw snapshot.
+          // JSON snapshot string, or { NULL: true } when no contact was returned.
           ':bc': rawContact,
-          ':bcs': { S: buyerContact ? "AWS_MARKETPLACE_BUYER_CONTACT" : "NONE" },
         },
         // Only set created timestamp if the item doesn't exist
         ConditionExpression: 'attribute_not_exists(created)',

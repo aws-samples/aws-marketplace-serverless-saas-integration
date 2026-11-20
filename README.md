@@ -191,15 +191,13 @@ buyer-supplied input, and **verify the email yourself** — AWS does not verify 
 
 ### What gets stored
 
-The following attributes are added to the subscriber record in the `AWSMarketplaceSubscribers`
+The following attribute is added to the subscriber record in the `AWSMarketplaceSubscribers`
 DynamoDB table (keyed on `customerIdentifier` = License ARN). DynamoDB is schemaless, so no table
 change is required.
 
 | Attribute | Meaning |
 |-----------|---------|
-| `buyerContact` | The pristine, immutable Marketplace snapshot (reference / audit copy), stored as JSON: `firstName`, `lastName`, `emailAddress`, `companyName`, `countryCode`. |
-| `effectiveContact` | The working copy, seeded from the same snapshot. This is the attribute you may mutate later (e.g. after email verification). |
-| `buyerContactSource` | `AWS_MARKETPLACE_BUYER_CONTACT` when a snapshot was retrieved, `NONE` when the buyer opted out or no snapshot exists. |
+| `buyerContact` | The immutable Marketplace snapshot, stored as JSON: `firstName`, `lastName`, `emailAddress`, `companyName`, `countryCode`. `NULL` when the buyer opted out or no snapshot exists. |
 
 The existing seller form fields (`companyName`, `contactPerson`, `contactPhone`, `contactEmail`) are
 unchanged and are **never** overwritten by the buyer-contact logic.
@@ -209,9 +207,8 @@ unchanged and are **never** overwritten by the buyer-contact logic.
 There are two retrieval paths:
 
 - **Synchronous (primary)** — `src/register-new-subscriber.js`. After `ResolveCustomer`, the handler
-  calls `GetAgreementContacts` with the returned `AgreementId` and writes `buyerContact`,
-  `effectiveContact`, and `buyerContactSource` alongside the form fields. This path
-  is authoritative for `effectiveContact` and sets `successfully_registered = true`.
+  calls `GetAgreementContacts` with the returned `AgreementId` and writes `buyerContact`
+  alongside the form fields and sets `successfully_registered = true`.
 - **Asynchronous (back-fill)** — `src/entitlement-sqs.js`. Marketplace License events delivered via
   EventBridge → SQS already carry the `agreementId`. The handler uses it to back-fill the contact
   for agreements where the sync path was skipped or failed.
@@ -231,9 +228,8 @@ Two writers update the same record: the sync registration path and the async Eve
 does not guarantee their order, so the back-fill is designed to never clobber registered values:
 
 - `buyerContact` is an immutable snapshot, so refreshing it from either path is idempotent.
-- `effectiveContact` is seeded by the async path with `if_not_exists` **and** only when
-  `successfully_registered` is not already `true` (a DynamoDB `ConditionExpression`). The sync
-  registration path owns `effectiveContact`.
+- When the sync path gets no contact back, it only initialises `buyerContact` to `NULL` with
+  `if_not_exists`, so it never overwrites a snapshot the async path already back-filled.
 - The async path never touches the seller's form fields.
 
 This is safe in both orders (register-then-event and event-then-register).

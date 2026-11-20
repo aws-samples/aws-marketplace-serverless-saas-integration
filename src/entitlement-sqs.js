@@ -135,60 +135,29 @@ async function getBuyerContact(agreementId) {
 // contact can be retrieved even when the sync registration path was skipped or
 // failed. Nothing is written when no contact is returned.
 //
-// Concurrency rules for the buyer contact (see integration skill doc §3E):
-//   - buyerContact (immutable snapshot) is refreshed unconditionally; writes are
-//     idempotent so ordering can never cause loss.
-//   - effectiveContact (mutable working copy) is seeded with if_not_exists AND
-//     only when successfully_registered is NOT already true, because the sync
-//     registration path is authoritative for effectiveContact.
+// buyerContact is an immutable snapshot, so writing it unconditionally is
+// idempotent and safe in either order relative to registration. The sync path
+// (register-new-subscriber.js) never overwrites a stored snapshot with NULL.
 // Never touches the seller's form fields.
 async function backfillBuyerContact(licenseArn, agreementId) {
   const buyerContact = await getBuyerContact(agreementId);
   if (!buyerContact) {
     return;
   }
-  const rawContact = { S: JSON.stringify(buyerContact) };
 
-  // 1) Persist buyerContact. Safe to write regardless of registration state:
-  //    buyerContact is an immutable snapshot.
   try {
     await dynamodb.send(new UpdateItemCommand({
       TableName: newSubscribersTableName,
       Key: { customerIdentifier: { S: licenseArn } },
-      UpdateExpression: 'SET buyerContact = :bc, buyerContactSource = :bcs',
+      UpdateExpression: 'SET buyerContact = :bc',
       ExpressionAttributeValues: {
-        ':bc': rawContact,
-        ':bcs': { S: 'AWS_MARKETPLACE_BUYER_CONTACT' },
+        ':bc': { S: JSON.stringify(buyerContact) },
       },
     }));
     logger.info(`Buyer contact back-filled for ${licenseArn}`);
   } catch (error) {
+    // Non-blocking: log and continue, do not fail the handler.
     logger.error(`Failed to back-fill buyer contact for ${licenseArn}: ${error.name} ${error.message}`);
-  }
-
-  // 2) Seed effectiveContact only when registration has not yet run. The
-  //    ConditionExpression is the primary guard; if_not_exists is an atomic
-  //    backstop against clobbering an existing working copy.
-  try {
-    await dynamodb.send(new UpdateItemCommand({
-      TableName: newSubscribersTableName,
-      Key: { customerIdentifier: { S: licenseArn } },
-      UpdateExpression: 'SET effectiveContact = if_not_exists(effectiveContact, :bc)',
-      ConditionExpression: 'attribute_not_exists(successfully_registered) OR successfully_registered = :false',
-      ExpressionAttributeValues: {
-        ':bc': rawContact,
-        ':false': { BOOL: false },
-      },
-    }));
-    logger.info(`effectiveContact seeded for ${licenseArn}`);
-  } catch (error) {
-    if (error.name === 'ConditionalCheckFailedException') {
-      // Already registered: the sync path owns effectiveContact. Nothing to seed.
-      logger.info(`Already registered; left effectiveContact untouched for ${licenseArn}`);
-    } else {
-      // Non-blocking: log and continue, do not fail the handler.
-      logger.error(`Failed to seed effectiveContact for ${licenseArn}: ${error.name} ${error.message}`);
-    }
   }
 }
 
