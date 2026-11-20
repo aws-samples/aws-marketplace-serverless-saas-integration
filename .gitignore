@@ -4,7 +4,8 @@ node_modules
 .DS_Store
 packaged.yaml
 /deploy.sh
-*.toml
+# SAM CLI local deploy settings (account/region specific).
+samconfig*.toml
 archive
 src/build.log
 .venv
@@ -16,3 +17,7 @@ src/vendor/*.tgz
 
 # Built by scripts/lambda/deploy.sh.
 scripts/lambda/function.zip
+
+# Python bytecode.
+__pycache__/
+*.py[cod]
