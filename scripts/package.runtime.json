@@ -1,0 +1,19 @@
+{
+  "name": "aws-marketplace-saas-serverless-integration",
+  "version": "1.0.0",
+  "description": "Sample integration for SaaS products with AWS Marketplace",
+  "repository": "https://github.com/orgs/aws-samples/aws-marketplace-saas-serverless-integration",
+  "author": "Martin Gjoshevski <gjoshm@amazon.com>",
+  "license": "MIT-0",
+  "//sdk_strategy": "GENERATED SOURCE — 'runtime' variant. Selected by scripts/prepare-sdk.js when the Lambda runtime's built-in @aws-sdk/client-marketplace-agreement is >= 3.1171.0. The two Buyer Contact clients are intentionally ABSENT from dependencies: they are provided by the Lambda runtime and nothing is bundled. Do not edit src/package.json directly; edit scripts/package.runtime.json / scripts/package.bundled.json and re-run scripts/prepare-sdk.js.",
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.741.0",
+    "@aws-sdk/client-marketplace-catalog": "^3.741.0",
+    "@aws-sdk/client-marketplace-entitlement-service": "^3.741.0",
+    "@aws-sdk/client-ses": "^3.741.0",
+    "@aws-sdk/client-sns": "^3.741.0",
+    "@aws-sdk/client-sqs": "^3.741.0",
+    "@aws-sdk/util-dynamodb": "^3.741.0",
+    "winston": "3.8.2"
+  }
+}

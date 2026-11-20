@@ -3,7 +3,7 @@ const { DynamoDBClient, UpdateItemCommand } = require('@aws-sdk/client-dynamodb'
 const { MarketplaceCatalogClient, DescribeEntityCommand } = require('@aws-sdk/client-marketplace-catalog');
 const { MarketplaceEntitlementServiceClient, GetEntitlementsCommand } = require('@aws-sdk/client-marketplace-entitlement-service');
 //const { MarketplaceAgreementServiceClient, DescribeAgreementCommand } = require('@aws-sdk/client-marketplace-agreement');
-const { MarketplaceAgreementClient, DescribeAgreementCommand, GetAgreementTermsCommand } = require('@aws-sdk/client-marketplace-agreement');
+const { MarketplaceAgreementClient, DescribeAgreementCommand, GetAgreementTermsCommand, GetAgreementContactsCommand } = require('@aws-sdk/client-marketplace-agreement');
 const { NewSubscribersTableName: newSubscribersTableName, AWS_REGION: aws_region, PricingModel: pricingModel } = process.env;
 // MarketplaceEntitlementService is instantiated only in us-east-1 https://docs.aws.amazon.com/general/latest/gr/aws-marketplace.html#marketplaceentitlement
 const dynamodb = new DynamoDBClient({ region: aws_region });
@@ -97,6 +97,107 @@ async function checkForFreeTrial(agreementId) {
   }
 }
 
+// Retrieve the buyer contact (Profile Snapshot) for an agreement.
+// Non-blocking back-fill: any failure resolves to null and must never fail the
+// handler. Mirrors the handling in register-new-subscriber.js.
+async function getBuyerContact(agreementId) {
+  logger.info(`getBuyerContact: agreementId = ${JSON.stringify(agreementId)}`);
+  if (!agreementId) {
+    logger.info('getBuyerContact: no agreementId provided, skipping GetAgreementContacts');
+    return null;
+  }
+  try {
+    // GetAgreementContacts is served from the same Agreement Service endpoint
+    // as DescribeAgreement / GetAgreementTerms above.
+    const agreementClient = new MarketplaceAgreementClient({
+      region: 'us-east-1',
+    });
+    logger.info(`getBuyerContact: calling GetAgreementContacts for ${agreementId}`);
+    const resp = await agreementClient.send(new GetAgreementContactsCommand({ agreementId }));
+    const contact = resp.acceptorContact || null;
+    logger.info(`getBuyerContact: acceptorContact present: ${!!contact}`);
+    return contact;
+  } catch (error) {
+    if (error.name === 'ResourceNotFoundException'
+        && error.resourceType === 'AGREEMENT_ACCEPTOR_CONTACT') {
+      logger.info(`getBuyerContact: No buyer contact captured for agreement ${agreementId} (ResourceNotFoundException / AGREEMENT_ACCEPTOR_CONTACT)`);
+      return null;
+    }
+    logger.error(`getBuyerContact: GetAgreementContacts FAILED for ${agreementId}: ${error.name} | ${error.message} | resourceType: ${error.resourceType}`);
+    return null;
+  }
+}
+
+// Back-fill the agreement id and buyer contact onto the subscriber record
+// (keyed on customerIdentifier = License ARN) without disturbing the sync path.
+//
+// The agreementId comes from the EventBridge event (detail.agreement.id), so it
+// is available even when ResolveCustomer (sync path) cannot yet return it. It is
+// written unconditionally so mp_agreementId is populated regardless of whether
+// GetAgreementContacts is available or returns a contact.
+//
+// Concurrency rules for the buyer contact (see integration skill doc §3E):
+//   - buyerContact (immutable snapshot) is refreshed unconditionally; writes are
+//     idempotent so ordering can never cause loss.
+//   - effectiveContact (mutable working copy) is seeded with if_not_exists AND
+//     only when successfully_registered is NOT already true, because the sync
+//     registration path is authoritative for effectiveContact.
+// Never touches the seller's form fields.
+async function backfillBuyerContact(licenseArn, agreementId) {
+  const buyerContact = await getBuyerContact(agreementId);
+  const rawContact = buyerContact ? { S: JSON.stringify(buyerContact) } : null;
+
+  // 1) Always persist mp_agreementId (and buyerContact when we have one).
+  //    These are safe to write regardless of registration state: mp_agreementId
+  //    from the event is stable and buyerContact is an immutable snapshot.
+  const unconditionalValues = { ':aid': { S: agreementId || '' } };
+  let unconditionalExpr = 'SET mp_agreementId = :aid';
+  if (rawContact) {
+    unconditionalExpr += ', buyerContact = :bc, buyerContactSource = :bcs';
+    unconditionalValues[':bc'] = rawContact;
+    unconditionalValues[':bcs'] = { S: 'AWS_MARKETPLACE_BUYER_CONTACT' };
+  }
+
+  try {
+    await dynamodb.send(new UpdateItemCommand({
+      TableName: newSubscribersTableName,
+      Key: { customerIdentifier: { S: licenseArn } },
+      UpdateExpression: unconditionalExpr,
+      ExpressionAttributeValues: unconditionalValues,
+    }));
+    logger.info(`Agreement id (and buyer contact if present) back-filled for ${licenseArn}`);
+  } catch (error) {
+    logger.error(`Failed to back-fill agreement id for ${licenseArn}: ${error.name} ${error.message}`);
+  }
+
+  // 2) Seed effectiveContact only when a contact exists AND registration has not
+  //    yet run. The ConditionExpression is the primary guard; if_not_exists is an
+  //    atomic backstop against clobbering an existing working copy.
+  if (!rawContact) {
+    return;
+  }
+  try {
+    await dynamodb.send(new UpdateItemCommand({
+      TableName: newSubscribersTableName,
+      Key: { customerIdentifier: { S: licenseArn } },
+      UpdateExpression: 'SET effectiveContact = if_not_exists(effectiveContact, :bc)',
+      ConditionExpression: 'attribute_not_exists(successfully_registered) OR successfully_registered = :false',
+      ExpressionAttributeValues: {
+        ':bc': rawContact,
+        ':false': { BOOL: false },
+      },
+    }));
+    logger.info(`effectiveContact seeded for ${licenseArn}`);
+  } catch (error) {
+    if (error.name === 'ConditionalCheckFailedException') {
+      // Already registered: the sync path owns effectiveContact. Nothing to seed.
+      logger.info(`Already registered; left effectiveContact untouched for ${licenseArn}`);
+    } else {
+      // Non-blocking: log and continue, do not fail the handler.
+      logger.error(`Failed to seed effectiveContact for ${licenseArn}: ${error.name} ${error.message}`);
+    }
+  }
+}
 
 exports.handler = async (event) => {
   logger.info('event:', event);
@@ -129,6 +230,10 @@ exports.handler = async (event) => {
       const agreementDetails = await getAgreementDetails(agreementId);
       const isFreeTrialTermPresent = await checkForFreeTrial(agreementId);
       logger.info(`is_free_trial_term_present: ${isFreeTrialTermPresent}`);
+
+      // Non-blocking buyer-contact back-fill. Does not touch form fields and
+      // honors the successfully_registered guard (see §3E in the skill doc).
+      await backfillBuyerContact(licenseArn, agreementId);
 
       let entitlementData = {};
       let isExpired = detailType === 'License Deprovisioned - Manufacturer' || detailType === 'License Deprovisioned - Proposer';

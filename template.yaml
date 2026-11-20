@@ -8,7 +8,7 @@ Globals:
       StackName: !Ref AWS::StackName
     Environment:
       Variables:
-        LOG_LEVEL: "debug"
+        LOG_LEVEL: "info"
   Api:
     Cors:
       AllowMethods: "'POST,OPTIONS'"
@@ -102,11 +102,18 @@ Resources:
 
   ServerlessApi:
     Type: AWS::Serverless::Api
+    Metadata:
+      checkov:
+        skip:
+          - id: CKV_AWS_76
+            comment: "Ephemeral workshop account; no account-level API Gateway CloudWatch role. Creating AWS::ApiGateway::Account would overwrite partner account settings."
     Properties:
       StageName: Prod
       MethodSettings:
         - ResourcePath: /subscriber
           HttpMethod: POST, OPTIONS
+        - ResourcePath: /contact
+          HttpMethod: GET, OPTIONS
         - ResourcePath: /redirectmarketplacetoken
           HttpMethod: POST, OPTIONS
 
@@ -234,6 +241,12 @@ Resources:
                 - aws-marketplace:ResolveCustomer
               Resource: "*"
         - Statement:
+            - Sid: AWSMarketplaceGetAgreementContacts
+              Effect: Allow
+              Action:
+                - aws-marketplace:GetAgreementContacts
+              Resource: "*"
+        - Statement:
             - Sid: SQSPolicy
               Effect: Allow
               Action:
@@ -253,7 +266,34 @@ Resources:
             Path: /subscriber
             Method: post
             RestApiId: !Ref ServerlessApi
-  
+
+  GetBuyerContact:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: get-buyer-contact.getBuyerContactHandler
+      Runtime: nodejs24.x
+      Policies:
+        - Statement:
+            - Sid: AWSMarketplaceResolveCustomer
+              Effect: Allow
+              Action:
+                - aws-marketplace:ResolveCustomer
+              Resource: "*"
+        - Statement:
+            - Sid: AWSMarketplaceGetAgreementContacts
+              Effect: Allow
+              Action:
+                - aws-marketplace:GetAgreementContacts
+              Resource: "*"
+      Events:
+        GetContact:
+          Type: Api
+          Properties:
+            Path: /contact
+            Method: get
+            RestApiId: !Ref ServerlessApi
+
   EntitlementSQSQueue:
     Type: AWS::SQS::Queue
 
@@ -280,6 +320,7 @@ Resources:
                 - aws-marketplace:GetAgreementTerms
                 - aws-marketplace:DescribeEntity
                 - aws-marketplace:GetEntitlements
+                - aws-marketplace:GetAgreementContacts
               Resource: "*"
       Events:
         SQSTrigger:
@@ -458,6 +499,14 @@ Resources:
     Condition: CreateWeb
     Properties:
       BucketName: !Ref WebsiteS3BucketName
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      LoggingConfiguration:
+        DestinationBucketName: !Ref WebsiteS3BucketLog
+        LogFilePrefix: access-logs/
 
   WebsiteS3BucketLog:
     Type: AWS::S3::Bucket
@@ -473,6 +522,16 @@ Resources:
           Tierings:
             - AccessTier: ARCHIVE_ACCESS
               Days: 90
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+    Metadata:
+      checkov:
+        skip:
+          - id: CKV_AWS_18
+            comment: "Logging target bucket; access logging on the target bucket is not required (would create a logging loop)."
 
   S3BucketPolicy:
     Type: AWS::S3::BucketPolicy
@@ -607,6 +666,16 @@ Resources:
           TargetOriginId: s3-website
           ViewerProtocolPolicy: redirect-to-https
         CacheBehaviors:
+          - PathPattern: /contact
+            AllowedMethods:
+            - HEAD
+            - GET
+            - OPTIONS
+            TargetOriginId: api-gateway
+            ViewerProtocolPolicy: redirect-to-https
+            ResponseHeadersPolicyId: 60669652-455b-4ae9-85a4-c4c02393f86c
+            CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad
+            OriginRequestPolicyId: b689b0a8-53d0-40ab-baf2-68738e2966ac
           - PathPattern: /redirectmarketplacetoken
             AllowedMethods:
             - HEAD
@@ -675,6 +744,8 @@ Resources:
               <input type="tel" name="contactPhone" class="form-control" placeholder="Contact phone" required autofocus>
               <label for="contactEmail" class="sr-only">Email address</label>
               <input type="email" name="contactEmail" class="form-control" placeholder="Email address" required autofocus>
+              <label for="country" class="sr-only">Country</label>
+              <input type="text" name="country" class="form-control" placeholder="Country (ISO code, e.g. US)" autofocus>
               <button class="btn btn-lg btn-primary btn-block" type="submit">Register</button>
               <p class="mt-5 mb-3 text-muted">&copy; <script>document.write(new Date().getFullYear())</script> </p>
             </form>
@@ -750,6 +821,38 @@ Resources:
         const regToken = getUrlParameter('x-amzn-marketplace-token');
         if (!regToken) {
           showAlert('danger', 'Registration Token Missing. Please go to AWS Marketplace and follow the instructions to set up your account!');
+        } else {
+          // Pre-fill the form with the buyer contact the buyer already provided
+          // in AWS Marketplace. Best-effort: if the contact is absent or the
+          // request fails, the buyer simply fills the form manually.
+          const setField = (name, value) => {
+            if (!value) return;
+            const el = form.elements[name];
+            if (el && !el.value) {
+              el.value = value;
+            }
+          };
+          const prefillUrl = `/contact?x-amzn-marketplace-token=${encodeURIComponent(regToken)}`;
+          const prefillXhr = new XMLHttpRequest();
+          prefillXhr.open('GET', prefillUrl, true);
+          prefillXhr.onreadystatechange = () => {
+            if (prefillXhr.readyState === XMLHttpRequest.DONE && prefillXhr.status === 200) {
+              try {
+                const resp = JSON.parse(prefillXhr.responseText);
+                const c = resp && resp.contact;
+                if (c) {
+                  const fullName = [c.firstName, c.lastName].filter(Boolean).join(' ');
+                  setField('contactPerson', fullName);
+                  setField('contactEmail', c.emailAddress);
+                  setField('companyName', c.companyName);
+                  setField('country', c.countryCode);
+                }
+              } catch (e) {
+                console.log('Could not parse pre-fill response', e);
+              }
+            }
+          };
+          prefillXhr.send();
         }
 
   S3ContentStyle:
